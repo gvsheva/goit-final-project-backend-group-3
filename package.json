@@ -1,0 +1,24 @@
+{
+  "name": "goit-final-project-backend-group-3",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node ./bin/www",
+    "dev": "nodemon -e js,ts ./bin/www"
+  },
+  "dependencies": {
+    "debug": "~2.6.9",
+    "express": "^4.22.1",
+    "morgan": "^1.10.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^24.10.1",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
+    "nodemon": "^3.1.11"
+  }
+}
