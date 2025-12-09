@@ -5,6 +5,7 @@ import openapiJSdoc from "swagger-jsdoc";
 import openapiUI from "swagger-ui-express";
 
 import indexRouter from "./routes/router.ts";
+import authRouter from "./routes/auth.ts";
 import usersRouter from "./routes/users.ts";
 
 const options = {
@@ -14,6 +15,15 @@ const options = {
         info: {
             title: "Foodies API specification",
             version: "1.0.0",
+        },
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: "http",
+                    scheme: "bearer",
+                    bearerFormat: "JWT",
+                },
+            },
         },
     },
     apis: ["./routes/*.ts"],
@@ -31,6 +41,7 @@ app.use("/public", express.static(join(import.meta.dirname, "public")));
 app.use('/api-docs', openapiUI.serve, openapiUI.setup(openapiSpec));
 
 app.use("/", indexRouter);
+app.use("/auth", authRouter);
 app.use("/users", usersRouter);
 
 export default app;
