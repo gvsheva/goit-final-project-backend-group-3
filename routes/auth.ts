@@ -63,6 +63,8 @@ function buildSessionData(
  *               avatar:
  *                 type: string
  *                 format: uri
+ *               sessionData:
+ *                 type: object
  *     responses:
  *       201:
  *         description: User registered and session created
