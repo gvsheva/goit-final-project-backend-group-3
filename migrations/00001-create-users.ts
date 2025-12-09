@@ -17,6 +17,7 @@ export async function up(
         email: {
             allowNull: false,
             type: Sequelize.STRING,
+            unique: true,
         },
         password: {
             allowNull: false,
