@@ -28,7 +28,7 @@ export async function up(
                     },
                     time: {
                         allowNull: false,
-                        type: Sequelize.INTEGER.UNSIGNED,
+                        type: Sequelize.INTEGER,
                     },
                     img: {
                         allowNull: false,
