@@ -6,6 +6,7 @@ import {
 } from "express";
 
 import { AuthService, AuthServiceError } from "../services/auth.ts";
+import authMiddleware from "../middlewares/auth.ts";
 
 const router = Router();
 const authService = new AuthService();
@@ -24,20 +25,6 @@ function handleAuthError(
     }
 
     next(error);
-}
-
-function extractToken(req: Request): string | null {
-    const header = req.get("authorization");
-    if (!header) {
-        return null;
-    }
-
-    const [scheme, token] = header.split(" ");
-    if (scheme?.toLowerCase() === "bearer" && token) {
-        return token;
-    }
-
-    return null;
 }
 
 function buildSessionData(
@@ -76,8 +63,6 @@ function buildSessionData(
  *               avatar:
  *                 type: string
  *                 format: uri
- *               sessionData:
- *                 type: object
  *     responses:
  *       201:
  *         description: User registered and session created
@@ -186,16 +171,19 @@ router.post(
  */
 router.post(
     "/logout",
+    authMiddleware,
     async function (req: Request, res: Response, next: NextFunction) {
-        const token = extractToken(req);
+        const sessionId = req.session.id;
 
-        if (!token) {
-            res.status(400).json({ message: "Authorization token is required" });
+        if (!sessionId) {
+            res.status(400).json({
+                message: "Authorization token is required",
+            });
             return;
         }
 
         try {
-            await authService.logout(token);
+            await authService.logout(sessionId);
             res.status(204).send();
         } catch (error) {
             handleAuthError(error, res, next);

@@ -47,7 +47,7 @@ export class AuthServiceError extends Error {
 }
 
 export class AuthService {
-    async register(payload: RegisterPayload): Promise<AuthResult> {
+    async register(payload: RegisterPayload) {
         const existing = await User.findOne({
             where: { email: payload.email },
         });
@@ -83,7 +83,7 @@ export class AuthService {
         };
     }
 
-    async login(payload: LoginPayload): Promise<AuthResult> {
+    async login(payload: LoginPayload) {
         const user = await User.findOne({ where: { email: payload.email } });
         if (!user) {
             throw new AuthServiceError(
@@ -117,8 +117,8 @@ export class AuthService {
         };
     }
 
-    async logout(token: string): Promise<void> {
-        const session = await Session.findOne({ where: { token } });
+    async logout(sessionId: string) {
+        const session = await Session.findByPk(sessionId);
 
         if (!session || session.closed) {
             return;
@@ -128,7 +128,7 @@ export class AuthService {
         await session.save();
     }
 
-    private toPublicUser(user: User): PublicUser {
+    private toPublicUser(user: User) {
         const { password, ...rest } = user.get({
             plain: true,
         }) as InferAttributes<User>;
@@ -139,14 +139,13 @@ export class AuthService {
     private async createSession(
         user: User,
         sessionData: Record<string, unknown>,
-    ): Promise<Omit<AuthResult, "user">> {
+    ) {
         const sessionId = nanoid();
         const token = this.generateToken(user.id, sessionId, user.email);
 
         await Session.create({
             id: sessionId,
             userId: user.id,
-            token,
             data: sessionData,
             closed: false,
         });
@@ -154,21 +153,14 @@ export class AuthService {
         return { token, sessionId };
     }
 
-    private generateToken(
-        userId: string,
-        sessionId: string,
-        email: string,
-    ): string {
+    private generateToken(userId: string, sessionId: string, email: string) {
         return jwt.sign({ sid: sessionId, email }, authConfig.jwtSecret, {
             subject: userId,
             expiresIn: authConfig.jwtExpiresIn,
         });
     }
 
-    private async passwordsMatch(
-        candidate: string,
-        stored: string,
-    ): Promise<boolean> {
+    private async passwordsMatch(candidate: string, stored: string) {
         return bcrypt.compare(candidate, stored);
     }
 }

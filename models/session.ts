@@ -15,7 +15,6 @@ export class Session extends Model<
 > {
     declare id: string;
     declare userId: string;
-    declare token: string;
     declare data: Record<string, unknown>;
     declare closed: boolean;
     declare createdAt: CreationOptional<Date>;
@@ -39,10 +38,6 @@ initModel((sequelize: Sequelize)=> {
             userId: {
                 allowNull: false,
                 type: DataTypes.CHAR(21),
-            },
-            token: {
-                allowNull: false,
-                type: DataTypes.STRING,
             },
             data: {
                 allowNull: false,
