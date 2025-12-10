@@ -28,7 +28,7 @@ export class UsersService {
     async getUsers(): Promise<UserDto[]> {
         const users = await User.findAll({
             attributes: [...publicUserAttributes],
-            order: [["createdAt", "DESC"]],
+            order: [["createdAt", "DESC"], ["id", "ASC"]],
         });
 
         return users.map((user) => this.toUserDto(user));
@@ -47,7 +47,7 @@ export class UsersService {
     async getUserSessions(userId: string): Promise<SessionDto[]> {
         const sessions = await Session.findAll({
             where: { userId },
-            order: [["createdAt", "DESC"]],
+            order: [["createdAt", "DESC"], ["id", "ASC"]],
         });
 
         return sessions.map((session) => this.toSessionDto(session));
