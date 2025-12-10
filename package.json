@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node ./bin/www",
+    "start": "node --experimental-strip-types ./bin/www",
     "dev": "nodemon -e js,ts ./bin/www",
     "migrate:up": "sequelize-cli db:migrate",
     "seed": "sequelize-cli db:seed:all"
