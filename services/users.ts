@@ -1,6 +1,8 @@
-import { Session } from "../models/index.ts";
+import type { InferAttributes } from "sequelize";
 
-export interface UserSession {
+import { Session} from "../models/index.ts";
+
+export interface SessionDto {
     id: string;
     data: Record<string, unknown>;
     closed: boolean;
@@ -9,7 +11,7 @@ export interface UserSession {
 }
 
 export class UsersService {
-    async getUserSessions(userId: string): Promise<UserSession[]> {
+    async getUserSessions(userId: string): Promise<SessionDto[]> {
         const sessions = await Session.findAll({
             where: { userId },
             order: [["createdAt", "DESC"]],
@@ -21,7 +23,7 @@ export class UsersService {
     async getUserSession(
         userId: string,
         sessionId: string,
-    ): Promise<UserSession | null> {
+    ): Promise<SessionDto | null> {
         const session = await Session.findOne({
             where: { id: sessionId, userId },
         });
@@ -48,7 +50,7 @@ export class UsersService {
         return true;
     }
 
-    private toSessionDto(session: Session): UserSession {
+    private toSessionDto(session: Session): SessionDto {
         return {
             id: session.id,
             data: session.data,
