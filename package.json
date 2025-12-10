@@ -6,8 +6,8 @@
   "scripts": {
     "start": "node --experimental-strip-types -r dotenv/config ./bin/www",
     "dev": "nodemon -e js,ts --experimental-strip-types -r dotenv/config ./bin/www",
-    "migrate:up": "sequelize-cli db:migrate",
-    "seed": "sequelize-cli db:seed:all"
+    "migrate:up": "npm x --node-arg='--experimental-strip-types' sequelize-cli db:migrate",
+    "seed": "npm x --node-arg='--experimental-strip-types' sequelize-cli db:seed:all"
   },
   "dependencies": {
     "@types/jsonwebtoken": "^9.0.10",
