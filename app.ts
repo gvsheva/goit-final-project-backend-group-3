@@ -7,6 +7,11 @@ import openapiUI from "swagger-ui-express";
 import indexRouter from "./routes/router.ts";
 import authRouter from "./routes/auth.ts";
 import usersRouter from "./routes/users.ts";
+import categoriesRouter from "./routes/categories.ts";
+import areasRouter from "./routes/areas.ts";
+import ingredientsRouter from "./routes/ingredients.ts";
+import testimonialsRouter from "./routes/testimonials.ts";
+import recipesRouter from "./routes/recipes.ts";
 
 const options = {
     failOnErrors: true, // Whether or not to throw when parsing errors. Defaults to false.
@@ -43,5 +48,10 @@ app.use('/api-docs', openapiUI.serve, openapiUI.setup(openapiSpec));
 app.use("/", indexRouter);
 app.use("/auth", authRouter);
 app.use("/users", usersRouter);
+app.use("/categories", categoriesRouter);
+app.use("/areas", areasRouter);
+app.use("/ingredients", ingredientsRouter);
+app.use("/testimonials", testimonialsRouter);
+app.use("/recipes", recipesRouter);
 
 export default app;
