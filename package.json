@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node --experimental-strip-types ./bin/www",
-    "dev": "nodemon -e js,ts ./bin/www",
+    "dev": "nodemon -e js,ts --experimental-strip-types ./bin/www",
     "migrate:up": "sequelize-cli db:migrate",
     "seed": "sequelize-cli db:seed:all"
   },
