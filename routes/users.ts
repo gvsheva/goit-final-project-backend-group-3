@@ -17,6 +17,119 @@ function sendStub(res: Response, endpoint: string): void {
 
 /**
  * @openapi
+ * /users:
+ *   get:
+ *     summary: Get all users
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   email:
+ *                     type: string
+ *                     format: email
+ *                   avatar:
+ *                     type: string
+ *                     nullable: true
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *                   updatedAt:
+ *                     type: string
+ *                     format: date-time
+ *       401:
+ *         description: Missing or invalid authorization
+ */
+router.get(
+    "/",
+    authMiddleware,
+    async function (_req: Request, res: Response, next: NextFunction) {
+        try {
+            const users = await usersService.getUsers();
+            res.json(users);
+        } catch (error) {
+            next(error);
+        }
+    },
+);
+
+/**
+ * @openapi
+ * /users/{userId}:
+ *   get:
+ *     summary: Get a user by ID
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                   format: email
+ *                 avatar:
+ *                   type: string
+ *                   nullable: true
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                 updatedAt:
+ *                   type: string
+ *                   format: date-time
+ *       401:
+ *         description: Missing or invalid authorization
+ *       404:
+ *         description: User not found
+ */
+router.get(
+    "/:userId",
+    authMiddleware,
+    async function (req: Request, res: Response, next: NextFunction) {
+        try {
+            const { userId } = req.params;
+            const user = await usersService.getUser(userId);
+
+            if (!user) {
+                res.status(404).json({ message: "User not found" });
+                return;
+            }
+
+            res.json(user);
+        } catch (error) {
+            next(error);
+        }
+    },
+);
+
+/**
+ * @openapi
  * /users/me:
  *   get:
  *     summary: Get the currently authenticated user
@@ -54,8 +167,12 @@ router.get(
     "/me",
     authMiddleware,
     function (req: Request, res: Response, next: NextFunction) {
-        const user = req.session.user;
-        res.json(user);
+        try {
+            const user = req.session.user;
+            res.json(user);
+        } catch (error) {
+            next(error);
+        }
     },
 );
 
@@ -100,9 +217,7 @@ router.get(
     async function (req: Request, res: Response, next: NextFunction) {
         try {
             const userId = req.session?.userId;
-            const sessions = await usersService.getUserSessions(
-                userId,
-            );
+            const sessions = await usersService.getUserSessions(userId);
             res.json(sessions);
         } catch (error) {
             next(error);
@@ -235,14 +350,6 @@ router.delete(
     authMiddleware,
     function (req: Request, res: Response, next: NextFunction) {
         sendStub(res, "DELETE /users/:userId/follow");
-    },
-);
-
-router.get(
-    "/:userId",
-    authMiddleware,
-    function (req: Request, res: Response, next: NextFunction) {
-        sendStub(res, "GET /users/:userId");
     },
 );
 

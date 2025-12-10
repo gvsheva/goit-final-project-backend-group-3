@@ -1,6 +1,11 @@
 import type { InferAttributes } from "sequelize";
 
-import { Session} from "../models/index.ts";
+import { Session, User } from "../models/index.ts";
+
+export type UserDto = Pick<
+    InferAttributes<User>,
+    "id" | "name" | "email" | "avatar" | "createdAt" | "updatedAt"
+>;
 
 export interface SessionDto {
     id: string;
@@ -10,7 +15,35 @@ export interface SessionDto {
     updatedAt: Date;
 }
 
+const publicUserAttributes = [
+    "id",
+    "name",
+    "email",
+    "avatar",
+    "createdAt",
+    "updatedAt",
+] as const;
+
 export class UsersService {
+    async getUsers(): Promise<UserDto[]> {
+        const users = await User.findAll({
+            attributes: [...publicUserAttributes],
+            order: [["createdAt", "DESC"]],
+        });
+
+        return users.map((user) => this.toUserDto(user));
+    }
+
+    async getUser(userId: string): Promise<UserDto | null> {
+        const user = await User.findByPk(userId, {
+            attributes: [...publicUserAttributes],
+        });
+
+        if (!user) return null;
+
+        return this.toUserDto(user);
+    }
+
     async getUserSessions(userId: string): Promise<SessionDto[]> {
         const sessions = await Session.findAll({
             where: { userId },
@@ -48,6 +81,10 @@ export class UsersService {
         }
 
         return true;
+    }
+
+    private toUserDto(user: User): UserDto {
+        return user.get({ plain: true }) as UserDto;
     }
 
     private toSessionDto(session: Session): SessionDto {
