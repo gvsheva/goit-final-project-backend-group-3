@@ -17,6 +17,6 @@ var router = Router();
  *              description: Successful response
  */
 router.get("/", function (req: Request, res: Response, next: NextFunction) {
-  res.json("hello, world!");
+  res.send("Welcome to the Recipe API!");
 });
 export default router;
