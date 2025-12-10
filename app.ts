@@ -12,6 +12,12 @@ import areasRouter from "./routes/areas.ts";
 import ingredientsRouter from "./routes/ingredients.ts";
 import testimonialsRouter from "./routes/testimonials.ts";
 import recipesRouter from "./routes/recipes.ts";
+import { mkdirSync } from "fs";
+import {
+    DATA_DIRECTORY,
+    PUBLIC_DIRECTORY,
+    TMP_DIRECTORY,
+} from "./config/directories.ts";
 
 const options = {
     failOnErrors: true, // Whether or not to throw when parsing errors. Defaults to false.
@@ -36,6 +42,10 @@ const options = {
 
 const openapiSpec = openapiJSdoc(options);
 
+mkdirSync(DATA_DIRECTORY, { recursive: true });
+mkdirSync(TMP_DIRECTORY, { recursive: true });
+mkdirSync(PUBLIC_DIRECTORY, { recursive: true });
+
 var app = express();
 
 app.use(logger("dev"));
@@ -43,7 +53,7 @@ app.use(json());
 app.use(urlencoded({ extended: false }));
 app.use("/public", express.static(join(import.meta.dirname, "public")));
 
-app.use('/api-docs', openapiUI.serve, openapiUI.setup(openapiSpec));
+app.use("/api-docs", openapiUI.serve, openapiUI.setup(openapiSpec));
 
 app.use("/", indexRouter);
 app.use("/auth", authRouter);
@@ -53,5 +63,7 @@ app.use("/areas", areasRouter);
 app.use("/ingredients", ingredientsRouter);
 app.use("/testimonials", testimonialsRouter);
 app.use("/recipes", recipesRouter);
+
+app.use("/public", express.static(PUBLIC_DIRECTORY));
 
 export default app;
