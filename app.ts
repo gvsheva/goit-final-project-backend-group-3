@@ -51,7 +51,6 @@ var app = express();
 app.use(logger("dev"));
 app.use(json());
 app.use(urlencoded({ extended: false }));
-app.use("/public", express.static(join(import.meta.dirname, "public")));
 
 app.use("/api-docs", openapiUI.serve, openapiUI.setup(openapiSpec));
 
