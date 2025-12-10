@@ -1,3 +1,4 @@
+import Joi from "joi";
 import {
     Router,
     type NextFunction,
@@ -7,9 +8,24 @@ import {
 
 import { AuthService, AuthServiceError } from "../services/auth.ts";
 import authMiddleware from "../middlewares/auth.ts";
+import { validateBody } from "./utils.ts";
 
 const router = Router();
 const authService = new AuthService();
+
+const registerSchema = Joi.object({
+    name: Joi.string().required(),
+    email: Joi.string().email().required(),
+    password: Joi.string().required(),
+    avatar: Joi.string().uri().optional(),
+    sessionData: Joi.object().unknown(true).optional(),
+}).options({ allowUnknown: false, abortEarly: false });
+
+const loginSchema = Joi.object({
+    email: Joi.string().email().required(),
+    password: Joi.string().required(),
+    sessionData: Joi.object().unknown(true).optional(),
+}).options({ allowUnknown: false, abortEarly: false });
 
 function handleAuthError(
     error: unknown,
@@ -76,14 +92,9 @@ function buildSessionData(
 router.post(
     "/register",
     async function (req: Request, res: Response, next: NextFunction) {
-        const { name, email, password, avatar, sessionData } = req.body ?? {};
-
-        if (!name || !email || !password) {
-            res.status(400).json({
-                message: "name, email, and password are required",
-            });
-            return;
-        }
+        const validated = validateBody(registerSchema, req.body, res);
+        if (!validated) return;
+        const { name, email, password, avatar, sessionData } = validated;
 
         try {
             const result = await authService.register({
@@ -134,14 +145,9 @@ router.post(
 router.post(
     "/login",
     async function (req: Request, res: Response, next: NextFunction) {
-        const { email, password, sessionData } = req.body ?? {};
-
-        if (!email || !password) {
-            res.status(400).json({
-                message: "email and password are required",
-            });
-            return;
-        }
+        const validated = validateBody(loginSchema, req.body, res);
+        if (!validated) return;
+        const { email, password, sessionData } = validated;
 
         try {
             const result = await authService.login({
