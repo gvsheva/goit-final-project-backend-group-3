@@ -1,8 +1,8 @@
 import express, { json, urlencoded } from "express";
-import { join } from "path";
 import logger from "morgan";
 import openapiJSdoc from "swagger-jsdoc";
 import openapiUI from "swagger-ui-express";
+import cors from "cors";
 
 import indexRouter from "./routes/router.ts";
 import authRouter from "./routes/auth.ts";
@@ -20,7 +20,7 @@ import {
 } from "./config/directories.ts";
 
 const options = {
-    failOnErrors: true, // Whether or not to throw when parsing errors. Defaults to false.
+    failOnErrors: true,
     definition: {
         openapi: "3.0.0",
         info: {
@@ -46,7 +46,18 @@ mkdirSync(DATA_DIRECTORY, { recursive: true });
 mkdirSync(TMP_DIRECTORY, { recursive: true });
 mkdirSync(PUBLIC_DIRECTORY, { recursive: true });
 
-var app = express();
+const app = express();
+
+const allowedOrigins = [
+    "http://localhost:3001",
+    "https://webclient-foodies.vercel.app"
+];
+
+app.use(
+    cors({
+        origin: allowedOrigins,
+    }),
+);
 
 app.use(logger("dev"));
 app.use(json());
