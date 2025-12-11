@@ -7,7 +7,9 @@
     "start": "node --experimental-strip-types -r dotenv/config ./bin/www",
     "dev": "nodemon -e js,ts --experimental-strip-types -r dotenv/config ./bin/www",
     "migrate:up": "npm x --node-arg='--experimental-strip-types' sequelize-cli db:migrate",
-    "seed": "npm x --node-arg='--experimental-strip-types' sequelize-cli db:seed:all"
+    "seed": "npm x --node-arg='--experimental-strip-types' sequelize-cli db:seed:all",
+    "test": "cross-env NODE_OPTIONS=\"--experimental-strip-types --experimental-vm-modules\" DB_HOST=localhost DB_PORT=5432 DB_USERNAME=test DB_PASSWORD=test DB_DATABASE=test JWT_SECRET=test jest",
+    "test:watch": "cross-env NODE_OPTIONS=\"--experimental-strip-types --experimental-vm-modules\" DB_HOST=localhost DB_PORT=5432 DB_USERNAME=test DB_PASSWORD=test DB_DATABASE=test JWT_SECRET=test jest --watch"
   },
   "dependencies": {
     "@types/jsonwebtoken": "^9.0.10",
@@ -28,10 +30,17 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
+    "@jest/globals": "^30.2.0",
+    "@types/jest": "^30.0.0",
     "@types/morgan": "^1.9.10",
     "@types/node": "^24.10.1",
+    "@types/supertest": "^6.0.3",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
-    "nodemon": "^3.1.11"
+    "cross-env": "^10.1.0",
+    "jest": "^30.2.0",
+    "nodemon": "^3.1.11",
+    "supertest": "^7.1.4",
+    "ts-jest": "^29.4.6"
   }
 }
