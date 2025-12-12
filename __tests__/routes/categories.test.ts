@@ -3,61 +3,52 @@ import {
     describe,
     it,
     expect,
+    beforeAll,
     beforeEach,
-    afterEach,
 } from "@jest/globals";
 import supertest from "supertest";
 import express from "express";
 import type { Express } from "express";
-import ReferenceDataService from "../../services/referenceData";
 
-// Mock the models to avoid DB connection
-jest.mock("../../models/index", () => ({}));
+jest.unstable_mockModule("../../models/index.ts", () => ({}));
 
-// Mock the ReferenceDataService module
-jest.mock("../../services/referenceData");
+const mockGetCategories = jest.fn<(...args: any[]) => Promise<any>>();
+jest.unstable_mockModule("../../services/referenceData.ts", () => ({
+    __esModule: true,
+    default: jest.fn().mockImplementation(() => ({
+        getCategories: mockGetCategories,
+    })),
+    ReferenceDataService: jest.fn().mockImplementation(() => ({
+        getCategories: mockGetCategories,
+    })),
+}));
 
-describe("GET /categories", () => {
+let categoriesRouter: express.Router;
+
+describe("GET /categories (real router)", () => {
     let app: Express;
-    let mockGetCategories: jest.Mock;
 
-    beforeEach(() => {
-        app = express();
-        app.use(express.json());
-
-        // Create fresh router for each test
-        const router = express.Router();
-        const mockService = new ReferenceDataService();
-
-        mockGetCategories = jest.fn();
-        (mockService.getCategories as jest.Mock) = mockGetCategories;
-
-        router.get("/", async (req, res, next) => {
-            try {
-                const categories = await mockService.getCategories();
-                res.json(categories);
-            } catch (error) {
-                next(error);
-            }
-        });
-
-        app.use("/categories", router);
-
-        // Add error handler for tests
-        app.use(
-            (
-                err: Error,
-                req: express.Request,
-                res: express.Response,
-                next: express.NextFunction
-            ) => {
-                res.status(500).json({ message: err.message });
-            }
-        );
+    beforeAll(async () => {
+        const mod = await import("../../routes/categories.ts");
+        categoriesRouter = mod.default;
     });
 
-    afterEach(() => {
-        jest.clearAllMocks();
+    beforeEach(() => {
+        mockGetCategories.mockReset();
+
+        app = express();
+        app.use(express.json());
+        app.use("/categories", categoriesRouter);
+
+        // Мінімальний error handler для тестів
+        app.use(((
+            err: Error,
+            _req: express.Request,
+            res: express.Response,
+            _next: express.NextFunction
+        ) => {
+            res.status(500).json({ message: err.message });
+        }) as express.ErrorRequestHandler);
     });
 
     it("should return 200 and list of categories", async () => {
@@ -124,6 +115,7 @@ describe("GET /categories", () => {
         const response = await supertest(app).get("/categories").expect(500);
 
         expect(response.body).toHaveProperty("message");
+        expect(response.body.message).toBe(error.message);
         expect(mockGetCategories).toHaveBeenCalledTimes(1);
     });
 
