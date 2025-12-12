@@ -6,6 +6,8 @@ import {
 } from "express";
 
 import authMiddleware from "../middlewares/auth.ts";
+import { uploadSingleImage } from "../middlewares/upload.ts";
+import * as recipeController from "../controllers/recipeController.ts";
 
 const router = Router();
 
@@ -43,12 +45,59 @@ router.get(
     },
 );
 
+/**
+ * @openapi
+ * /recipes:
+ *   post:
+ *     tags:
+ *       - Recipes
+ *     summary: Create a new recipe
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - description
+ *               - instructions
+ *               - time
+ *               - categoryId
+ *               - areaId
+ *               - img
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               instructions:
+ *                 type: string
+ *               time:
+ *                 type: integer
+ *               categoryId:
+ *                 type: string
+ *               areaId:
+ *                 type: string
+ *               ingredients:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               img:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       201:
+ *         description: Recipe created
+ */
+
 router.post(
     "/",
     authMiddleware,
-    function (_req: Request, res: Response, _next: NextFunction) {
-        sendStub(res, "POST /recipes");
-    },
+    uploadSingleImage,
+    recipeController.createRecipe,
 );
 
 router.delete(
@@ -83,3 +132,4 @@ router.get(
 );
 
 export default router;
+

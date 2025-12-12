@@ -74,6 +74,7 @@ initModel((sequelize: Sequelize) => {
                 allowNull: false,
                 type: DataTypes.CHAR(21),
             },
+            
             categoryId: {
                 allowNull: false,
                 type: DataTypes.CHAR(21),
