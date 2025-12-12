@@ -25,10 +25,7 @@ export class ReferenceDataService {
     async getCategories(): Promise<CategoryDto[]> {
         const categories = await Category.findAll({
             attributes: ["id", "name"],
-            order: [
-                ["createdAt", "DESC"],
-                ["id", "ASC"],
-            ],
+            order: [["name", "ASC"]], // Сортування по алфавіту
         });
 
         return categories.map((category) => this.toCategoryDto(category));
@@ -44,7 +41,7 @@ export class ReferenceDataService {
         });
 
         return ingredients.map((ingredient) =>
-            this.toIngredientDto(ingredient),
+            this.toIngredientDto(ingredient)
         );
     }
 
