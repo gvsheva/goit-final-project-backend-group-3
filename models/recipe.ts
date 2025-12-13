@@ -22,7 +22,7 @@ export class Recipe extends Model<
     declare description: string;
     declare instructions: string;
     declare time: number;
-    declare img: string;
+    declare img: string | null;
     declare areaId: string;
     declare categoryId: string;
     declare ownerId: string;
@@ -67,13 +67,14 @@ initModel((sequelize: Sequelize) => {
                 type: DataTypes.INTEGER.UNSIGNED,
             },
             img: {
-                allowNull: false,
+                allowNull: true,
                 type: DataTypes.STRING(1024),
             },
             areaId: {
                 allowNull: false,
                 type: DataTypes.CHAR(21),
             },
+            
             categoryId: {
                 allowNull: false,
                 type: DataTypes.CHAR(21),
