@@ -1,12 +1,11 @@
 import multer, { type FileFilterCallback } from "multer";
 import path from "path";
 import fs from "fs";
+import { TMP_DIRECTORY } from "../config/directories.ts";
 
-const DATA_DIR = process.env.DATA_DIRECTORY || "./data";
-const UPLOAD_DIR = path.join(DATA_DIR, "tmp");
 
-if (!fs.existsSync(UPLOAD_DIR)) {
-    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+if (!fs.existsSync(TMP_DIRECTORY)) {
+    fs.mkdirSync(TMP_DIRECTORY, { recursive: true });
 }
 
 const allowedMime = ["image/jpeg", "image/png", "image/webp"];
@@ -24,7 +23,7 @@ const fileFilter = (
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, UPLOAD_DIR);
+    cb(null, TMP_DIRECTORY);
   },
   filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname);
