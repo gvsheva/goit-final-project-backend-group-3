@@ -7,7 +7,7 @@ import {
 
 import authMiddleware from "../middlewares/auth.ts";
 import { uploadSingleImage } from "../middlewares/upload.ts";
-import * as recipeController from "../controllers/recipeController.ts";
+import * as recipeService from "../services/recipeService.ts";
 
 const router = Router();
 
@@ -29,13 +29,6 @@ router.get(
     },
 );
 
-router.get(
-    "/own",
-    authMiddleware,
-    function (_req: Request, res: Response, _next: NextFunction) {
-        sendStub(res, "GET /recipes/own");
-    },
-);
 
 router.get(
     "/favorites",
@@ -97,16 +90,41 @@ router.post(
     "/",
     authMiddleware,
     uploadSingleImage,
-    recipeController.createRecipe,
-);
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const {
+                name,
+                description,
+                instructions,
+                time,
+                categoryId,
+                areaId,
+                ingredients = [],
+            } = req.body;
 
-router.delete(
-    "/:recipeId",
-    authMiddleware,
-    function (_req: Request, res: Response, _next: NextFunction) {
-        sendStub(res, "DELETE /recipes/:recipeId");
+            const img = req.file?.path ?? null;
+
+            const recipe = await recipeService.createRecipe({
+                ownerId: req.session!.user!.id,
+                name,
+                description,
+                instructions,
+                time: Number(time),
+                categoryId,
+                areaId,
+                ingredients: Array.isArray(ingredients)
+                    ? ingredients
+                    : [ingredients],
+                img,
+            });
+
+            res.status(201).json(recipe);
+        } catch (err) {
+            next(err);
+        }
     },
 );
+
 
 router.post(
     "/:recipeId/favorite",
@@ -131,5 +149,62 @@ router.get(
     },
 );
 
+/**
+ * @openapi
+ * /recipes/own:
+ *   get:
+ *     tags:
+ *       - Recipes
+ *     summary: Get own recipes
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of user's recipes
+ */
+
+router.get("/own", authMiddleware, async (req, res, next ) => {
+    try {
+        const recipes = await recipeService.getOwnRecipes(
+            req.session!.user!.id
+        )
+        res.json(recipes);
+    } catch (e) {
+        next(e);
+    }
+});
+
+/**
+ * @openapi
+ * /recipes/{recipeId}:
+ *   delete:
+ *     tags:
+ *       - Recipes
+ *     summary: Delete own recipe
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: recipeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       204:
+ *         description: Recipe deleted
+ */
+
+router.delete("/:recipeId", authMiddleware, async (req, res, next) => {
+    try {
+        await recipeService.deleteOwnRecipe(
+            req.params.recipeId,
+            req.session!.user!.id
+        )
+        res.status(204).send();
+    } catch (e) {
+        next(e);
+    }
+
+})
 export default router;
 
