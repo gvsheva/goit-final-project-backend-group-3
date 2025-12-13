@@ -3,7 +3,7 @@
 Simple Express + TypeScript backend with Swagger-generated API docs.
 
 ## Getting Started
-- Prereq: Node.js 18+ and npm.
+- Prereq: Node.js 24+ and npm.
 - Install deps: `npm install`
 - Dev server (with nodemon): `npm run dev`
 - Production start: `npm start`
