@@ -9,6 +9,7 @@ import { Session } from "./session.ts";
 import { Testimonial } from "./testimonial.ts";
 import { UserFollower } from "./userFollower.ts";
 import { User } from "./user.ts";
+import { FavoriteRecipe } from "./favoriteRecipe.ts";
 
 import init from "./init.ts";
 
@@ -58,6 +59,12 @@ User.belongsToMany(User, {
     foreignKey: "followerId",
     otherKey: "id",
 });
+User.belongsToMany(Recipe, {
+    through: FavoriteRecipe,
+    as: "favorites",
+    foreignKey: "userId",
+    otherKey: "recipeId",
+});
 
 export {
     sequelize,
@@ -71,4 +78,5 @@ export {
     Testimonial,
     User,
     UserFollower,
+    FavoriteRecipe,
 };

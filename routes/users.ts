@@ -67,6 +67,56 @@ router.get(
 
 /**
  * @openapi
+ * /users/me:
+ *   get:
+ *     summary: Get the currently authenticated user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: The authenticated user's profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                   format: email
+ *                 avatar:
+ *                   type: string
+ *                   nullable: true
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                 updatedAt:
+ *                   type: string
+ *                   format: date-time
+ *       401:
+ *         description: Missing or invalid authorization
+ */
+router.get(
+    "/me",
+    authMiddleware,
+    async function (req: Request, res: Response, next: NextFunction) {
+        try {
+            const user = req.session.user;
+            const userData = await usersService.getCurrentUser(user.id);
+            console.log(userData);
+            res.json(userData);
+        } catch (error) {
+            next(error);
+        }
+    },
+);
+
+/**
+ * @openapi
  * /users/{userId}:
  *   get:
  *     summary: Get a user by ID
@@ -121,54 +171,6 @@ router.get(
                 return;
             }
 
-            res.json(user);
-        } catch (error) {
-            next(error);
-        }
-    },
-);
-
-/**
- * @openapi
- * /users/me:
- *   get:
- *     summary: Get the currently authenticated user
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: The authenticated user's profile
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: string
- *                 name:
- *                   type: string
- *                 email:
- *                   type: string
- *                   format: email
- *                 avatar:
- *                   type: string
- *                   nullable: true
- *                 createdAt:
- *                   type: string
- *                   format: date-time
- *                 updatedAt:
- *                   type: string
- *                   format: date-time
- *       401:
- *         description: Missing or invalid authorization
- */
-router.get(
-    "/me",
-    authMiddleware,
-    function (req: Request, res: Response, next: NextFunction) {
-        try {
-            const user = req.session.user;
             res.json(user);
         } catch (error) {
             next(error);

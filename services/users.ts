@@ -1,6 +1,8 @@
 import type { InferAttributes } from "sequelize";
 
-import { Session, User } from "../models/index.ts";
+import {Recipe, Session, User, UserFollower} from "../models/index.ts";
+import {CurrentUserDto} from "../dto/currentUserDto.ts";
+import {FavoriteRecipe} from "../models/favoriteRecipe.ts";
 
 export type UserDto = Pick<
     InferAttributes<User>,
@@ -42,6 +44,45 @@ export class UsersService {
         if (!user) return null;
 
         return this.toUserDto(user);
+    }
+
+    async getCurrentUser(userId: string): Promise<CurrentUserDto | null> {
+        const user = await User.findByPk(userId);
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        const [
+            addedRecipesCount,
+            followersCount,
+            followingCount,
+            favoritesCount
+        ] = await Promise.all([
+            Recipe.count({
+                where: { ownerId: userId }
+            }),
+            UserFollower.count({
+                where: { id: userId }
+            }),
+            UserFollower.count({
+                where: { followerId: userId }
+            }),
+            FavoriteRecipe.count({
+                where: { userId: userId }
+            })
+        ]);
+
+        return new CurrentUserDto(
+            user.id,
+            user.name,
+            user.email,
+            user.avatar,
+            addedRecipesCount,
+            favoritesCount,
+            followersCount,
+            followingCount
+        );
     }
 
     async getUserSessions(userId: string): Promise<SessionDto[]> {
