@@ -37,11 +37,24 @@ Session.belongsTo(User, { foreignKey: "userId", as: "user" });
 User.hasMany(Recipe, { foreignKey: "ownerId", as: "recipes" });
 Recipe.belongsTo(User, { foreignKey: "ownerId", as: "owner" });
 
+Recipe.belongsTo(Category, { foreignKey: "categoryId", as: "category" });
+Category.hasMany(Recipe, { foreignKey: "categoryId", as: "recipes" });
+
+Recipe.belongsTo(Area, { foreignKey: "areaId", as: "area" });
+Area.hasMany(Recipe, { foreignKey: "areaId", as: "recipes" });
+
 Recipe.belongsToMany(Ingredient, {
     through: RecipeIngredient,
-    as: "ingredients",
-    foreignKey: { name: "recipeId", field: "id" },
+    foreignKey: "recipeId",
     otherKey: "ingredientId",
+    as: "ingredients",
+});
+
+Ingredient.belongsToMany(Recipe, {
+  through: RecipeIngredient,
+  foreignKey: "ingredientId",
+  otherKey: "recipeId",
+  as: "recipes",
 });
 
 User.hasMany(Testimonial, { foreignKey: "ownerId", as: "testimonials" });
