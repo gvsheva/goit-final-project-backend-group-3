@@ -27,12 +27,14 @@ export class User extends Model<
     declare following?: NonAttribute<User[]>;
     declare followers?: NonAttribute<User[]>;
     declare recipes?: NonAttribute<Recipe[]>;
+    declare favorites?: NonAttribute<Recipe[]>;
 
     declare static associations: {
         sessions: Association<User, Session>;
         following: Association<User, User>;
         followers: Association<User, User>;
         recipes: Association<User, Recipe>;
+        favorites: Association<User, Recipe>;
     };
 }
 

@@ -1,13 +1,22 @@
 import type { InferAttributes } from "sequelize";
 
 import {Recipe, Session, User, UserFollower} from "../models/index.ts";
-import {CurrentUserDto} from "../dto/currentUserDto.ts";
 import {FavoriteRecipe} from "../models/favoriteRecipe.ts";
 
 export type UserDto = Pick<
     InferAttributes<User>,
     "id" | "name" | "email" | "avatar" | "createdAt" | "updatedAt"
 >;
+
+export type CurrentUserDto = Pick<
+    InferAttributes<User>,
+    "id" | "name" | "email" | "avatar"
+> & {
+    recipesAmount: number;
+    favoriteRecipesAmount: number;
+    followersAmount: number;
+    followingsAmount: number;
+};
 
 export interface SessionDto {
     id: string;
@@ -73,16 +82,16 @@ export class UsersService {
             })
         ]);
 
-        return new CurrentUserDto(
-            user.id,
-            user.name,
-            user.email,
-            user.avatar,
-            addedRecipesCount,
-            favoritesCount,
-            followersCount,
-            followingCount
-        );
+        return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            avatar: user.avatar,
+            recipesAmount: addedRecipesCount,
+            favoriteRecipesAmount: favoritesCount,
+            followersAmount: followersCount,
+            followingsAmount: followingCount,
+        };
     }
 
     async getUserSessions(userId: string): Promise<SessionDto[]> {

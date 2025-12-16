@@ -107,7 +107,6 @@ router.get(
         try {
             const user = req.session.user;
             const userData = await usersService.getCurrentUser(user.id);
-            console.log(userData);
             res.json(userData);
         } catch (error) {
             next(error);
