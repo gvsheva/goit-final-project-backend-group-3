@@ -315,6 +315,40 @@ router.delete(
     },
 );
 
+/**
+ * @openapi
+ * /users/me/avatar:
+ *   patch:
+ *     summary: Update the current user's avatar
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               img:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Avatar updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 avatar:
+ *                   type: string
+ *                   example: "/public/avatar/user123-1734455.jpg"
+ *       400:
+ *         description: No file uploaded
+ *       401:
+ *         description: Missing or invalid authorization
+ */
 router.patch(
     "/me/avatar",
     authMiddleware,
