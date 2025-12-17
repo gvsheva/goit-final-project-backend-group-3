@@ -60,7 +60,6 @@ router.get(
  *               - time
  *               - categoryId
  *               - areaId
- *               - img
  *             properties:
  *               name:
  *                 type: string
