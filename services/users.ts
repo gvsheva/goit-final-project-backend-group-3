@@ -2,6 +2,9 @@ import type { InferAttributes } from "sequelize";
 
 import {Recipe, Session, User, UserFollower} from "../models/index.ts";
 import {FavoriteRecipe} from "../models/favoriteRecipe.ts";
+import {AVATAR_DIRECTORY} from "../config/directories.ts";
+import path from "path";
+import fs from "fs";
 
 export type UserDto = Pick<
     InferAttributes<User>,
@@ -132,6 +135,37 @@ export class UsersService {
 
         return true;
     }
+
+    async updateAvatar(userId: string, tempFilePath: string) {
+        const user = await User.findByPk(userId);
+        if (!user) throw new Error("User not found");
+
+        if (!fs.existsSync(AVATAR_DIRECTORY)) {
+            fs.mkdirSync(AVATAR_DIRECTORY, { recursive: true });
+        }
+
+        const extension = path.extname(tempFilePath);
+        const newFileName = `${userId}-${Date.now()}${extension}`;
+        const targetPath = path.join(AVATAR_DIRECTORY, newFileName);
+
+        fs.renameSync(tempFilePath, targetPath);
+
+        if (user.avatar) {
+            const oldFileName = path.basename(user.avatar);
+            const oldPath = path.join(AVATAR_DIRECTORY, oldFileName);
+
+            if (fs.existsSync(oldPath)) {
+                try {
+                    fs.unlinkSync(oldPath);
+                } catch (err) {
+                    console.error("Failed to delete old avatar:", err);
+                }
+            }
+        }
+        const relativePath = "/" + path.posix.join("public", "avatar", newFileName);
+        await user.update({ avatar: relativePath });
+        return { avatar: relativePath };
+    };
 
     private toUserDto(user: User): UserDto {
         return user.get({ plain: true }) as UserDto;

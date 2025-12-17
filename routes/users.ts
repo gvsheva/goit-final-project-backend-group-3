@@ -7,6 +7,7 @@ import {
 
 import authMiddleware from "../middlewares/auth.ts";
 import UsersService from "../services/users.ts";
+import {uploadSingleImage} from "../middlewares/upload.ts";
 
 const router = Router();
 const usersService = new UsersService();
@@ -317,8 +318,20 @@ router.delete(
 router.patch(
     "/me/avatar",
     authMiddleware,
-    function (req: Request, res: Response, next: NextFunction) {
-        sendStub(res, "PATCH /users/me/avatar");
+    uploadSingleImage,
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            if (!req.file) {
+                res.status(400).json({ message: "No file uploaded" });
+                return;
+            }
+
+            const userId = req.session!.user!.id;
+            const result = await usersService.updateAvatar(userId, req.file.path);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
     },
 );
 
