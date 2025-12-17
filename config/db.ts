@@ -7,6 +7,7 @@ const port = parseInt(getenv("DB_PORT", "5432"));
 const username = getenv("DB_USERNAME");
 const password = getenv("DB_PASSWORD");
 const database = getenv("DB_DATABASE");
+const seederStorage = "sequelize";
 
 const dbOptions: Options = {
     dialect,
@@ -20,12 +21,15 @@ const dbOptions: Options = {
 export default {
     test: {
         ...dbOptions,
+        seederStorage,
     },
     development: {
         ...dbOptions,
+        seederStorage,
     },
     production: {
         ...dbOptions,
+        seederStorage,
         dialectOptions: {
             ssl: {
                 require: true,
