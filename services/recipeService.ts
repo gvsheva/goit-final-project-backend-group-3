@@ -20,7 +20,7 @@ export interface CreateRecipeDTO {
     categoryId: string;
     areaId: string;
     ingredients: string[];
-    img: string | null;
+    img: string;
 }
 
 export type RecipeDto = InferAttributes<Recipe> & {
@@ -58,6 +58,17 @@ export class RecipeService {
             img,
         } = data;
 
+        if (!img) {
+            throw new ServiceError("Recipe image is required", 400, "IMAGE_REQUIRED");
+        } 
+        
+        try {
+            await fs.access(img);
+        } catch {
+            throw new ServiceError("Uploaded image not found", 400, "IMAGE_NOT_FOUND");
+        }
+
+
         if (!name || name.trim().length === 0) {
             throw new ServiceError("Recipe name is required", 400, "INVALID_NAME");
         }
@@ -84,11 +95,8 @@ export class RecipeService {
             throw new ServiceError("Invalid areaId", 400, "INVALID_AREA");
         }
 
-        let finalImagePath: string | null = null;
+        const finalImagePath = await this.moveImageToPublic(img);
 
-        if (img) {
-            finalImagePath = await this.moveImageToPublic(img);
-        }
 
         const recipe = await Recipe.create({
             id: nanoid(),
@@ -101,6 +109,7 @@ export class RecipeService {
             areaId,
             img: finalImagePath,
         });
+
 
         if (ingredients.length > 0) {
             await this.createRecipeIngredients(recipe.id, ingredients);
@@ -147,7 +156,6 @@ export class RecipeService {
             { model: Area, as: "area", attributes: ["id", "name"] },
         ];
 
-        // ingredient filter
         if (ingredientName) {
             includeOptions.push({
                 model: Ingredient,
