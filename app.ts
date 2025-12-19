@@ -1,4 +1,5 @@
 import express, { json, urlencoded } from "express";
+import type { Request, Response, NextFunction } from "express";
 import logger from "morgan";
 import openapiJSdoc from "swagger-jsdoc";
 import openapiUI from "swagger-ui-express";
@@ -75,5 +76,21 @@ app.use("/testimonials", testimonialsRouter);
 app.use("/recipes", recipesRouter);
 
 app.use("/public", express.static(PUBLIC_DIRECTORY));
+
+// 404 handler for unmatched routes
+app.use((_req: Request, res: Response) => {
+    res.status(404).json({ message: "Route not found" });
+});
+
+// Global error handler
+app.use((err: Error & { status?: number }, _req: Request, res: Response, _next: NextFunction) => {
+    console.error(err.stack);
+    const status = err.status || 500;
+    res.status(status).json({
+        message: process.env.NODE_ENV === "production"
+            ? "Internal server error"
+            : err.message,
+    });
+});
 
 export default app;
