@@ -29,6 +29,18 @@ export type RecipeDto = InferAttributes<Recipe> & {
     area?: InferAttributes<Area>;
 };
 
+export interface GetAllRecipesFilters {
+    categoryId?: string | null;
+    areaId?: string | null;
+    ingredientName?: string | null;
+    ownerId?: string | null;
+}
+
+export interface PaginationOptions {
+    limit: number;
+    offset: number;
+}
+
 const MAX_INGREDIENTS = 50;
 const RECIPE_IMAGES_DIR = "recipes";
 
@@ -118,6 +130,56 @@ export class RecipeService {
         return recipes.map((recipe) => recipe.get({ plain: true }) as RecipeDto);
     }
 
+    async getAllRecipes(
+        filters: GetAllRecipesFilters,
+        pagination: PaginationOptions
+    ): Promise<{ count: number; rows: RecipeDto[] }> {
+        const { categoryId, areaId, ingredientName, ownerId } = filters;
+        const { limit, offset } = pagination;
+
+        const whereClause: any = {};
+        if (categoryId) whereClause.categoryId = categoryId;
+        if (areaId) whereClause.areaId = areaId;
+        if (ownerId) whereClause.ownerId = ownerId;
+
+        const includeOptions: any[] = [
+            { model: Category, as: "category", attributes: ["id", "name"] },
+            { model: Area, as: "area", attributes: ["id", "name"] },
+        ];
+
+        // ingredient filter
+        if (ingredientName) {
+            includeOptions.push({
+                model: Ingredient,
+                as: "ingredients",
+                attributes: ["id", "name", "img"],
+                where: { name: ingredientName },
+                through: { attributes: ["measure"] },
+            });
+        } else {
+            includeOptions.push({
+                model: Ingredient,
+                as: "ingredients",
+                attributes: ["id", "name", "img"],
+                through: { attributes: ["measure"] },
+            });
+        }
+
+        const { count, rows } = await Recipe.findAndCountAll({
+            where: whereClause,
+            include: includeOptions,
+            limit,
+            offset,
+            order: [["createdAt", "DESC"]],
+            distinct: true,
+        });
+
+        return {
+            count,
+            rows: rows.map((recipe) => recipe.get({ plain: true }) as RecipeDto),
+        };
+    }
+
     async deleteOwnRecipe(recipeId: string, ownerId: string): Promise<void> {
         const recipe = await Recipe.findOne({
             where: { id: recipeId, ownerId },
@@ -196,53 +258,11 @@ export class RecipeService {
             RecipeIngredient.create({
                 recipeId,
                 ingredientId: ingredient.id,
+            })
+        );
 
-            });
-        }
+        await Promise.all(recipeIngredientPromises);
     }
-
-    const createdRecipe = await Recipe.findByPk(recipe.id, {
-        include: [
-            { model: Ingredient, through: { attributes: [] } },
-            Category,
-            Area,
-        ],
-    })
-
-    return createdRecipe;
-    
-
 }
 
-export async function getOwnRecipes(ownerId: string) {
-    return Recipe.findAll({
-        where: { ownerId },
-        include: [
-            { model: Ingredient, through: { attributes: [] } },
-            Category,
-            Area,
-        ],
-    });
-}
-
-export async function deleteOwnRecipe(recipeId: string, ownerId: string) {
-    const recipe = await Recipe.findOne({
-        where: { id: recipeId, ownerId},
-    })
-
-    if (!recipe) {
-        throw new Error("Recipe not found or access denied");
-    }
-    
-    if (recipe.img) {
-        try {
-            fs.unlinkSync(recipe.img);
-        } catch (_) {}
-    }
-
-    await RecipeIngredient.destroy({
-        where: { recipeId },
-    })
-
-    await recipe.destroy();
-}
+export default RecipeService;
