@@ -1,6 +1,7 @@
 import type { InferAttributes } from "sequelize";
 import path from "path";
 import fs from "fs/promises";
+import { nanoid } from "nanoid";
 
 import { Recipe } from "../models/recipe.ts";
 import { RecipeIngredient } from "../models/recipeIngredient.ts";
@@ -78,6 +79,7 @@ export class RecipeService {
         }
 
         const recipe = await Recipe.create({
+            id: nanoid(),
             ownerId,
             name,
             description,
@@ -94,9 +96,9 @@ export class RecipeService {
 
         const createdRecipe = await Recipe.findByPk(recipe.id, {
             include: [
-                { model: Ingredient, through: { attributes: [] } },
-                Category,
-                Area,
+                { model: Ingredient, as: "ingredients", through: { attributes: [] } },
+                { model: Category, as: "category" },
+                { model: Area, as: "area" },
             ],
         });
 
@@ -107,9 +109,9 @@ export class RecipeService {
         const recipes = await Recipe.findAll({
             where: { ownerId },
             include: [
-                { model: Ingredient, through: { attributes: [] } },
-                Category,
-                Area,
+                { model: Ingredient, as: "ingredients", through: { attributes: [] } },
+                { model: Category, as: "category" },
+                { model: Area, as: "area" },
             ],
         });
 
@@ -177,7 +179,12 @@ export class RecipeService {
             });
 
             if (!ingredient) {
-                ingredient = await Ingredient.create({ name: ingName });
+                ingredient = await Ingredient.create({
+                    id: nanoid(),
+                    name: ingName,
+                    description: "",
+                    img: "",
+                });
             }
 
             return ingredient;
