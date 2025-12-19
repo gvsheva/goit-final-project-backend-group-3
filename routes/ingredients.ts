@@ -6,6 +6,7 @@ import {
 } from "express";
 
 import ReferenceDataService from "../services/referenceData.ts";
+import { handleServiceError } from "./utils.ts";
 
 const router = Router();
 const referenceDataService = new ReferenceDataService();
@@ -37,12 +38,12 @@ const referenceDataService = new ReferenceDataService();
  */
 router.get(
     "/",
-    async function (_req: Request, res: Response, next: NextFunction) {
+    async (_req: Request, res: Response, next: NextFunction) => {
         try {
             const ingredients = await referenceDataService.getIngredients();
             res.json(ingredients);
         } catch (error) {
-            next(error);
+            handleServiceError(error, res, next);
         }
     },
 );

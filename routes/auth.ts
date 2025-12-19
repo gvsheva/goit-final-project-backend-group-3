@@ -6,9 +6,9 @@ import {
     type Response,
 } from "express";
 
-import { AuthService, AuthServiceError } from "../services/auth.ts";
+import { AuthService } from "../services/auth.ts";
 import authMiddleware from "../middlewares/auth.ts";
-import { validateBody } from "./utils.ts";
+import { validateBody, handleServiceError } from "./utils.ts";
 
 const router = Router();
 const authService = new AuthService();
@@ -26,22 +26,6 @@ const loginSchema = Joi.object({
     password: Joi.string().required(),
     sessionData: Joi.object().unknown(true).optional(),
 }).options({ allowUnknown: false, abortEarly: false });
-
-function handleAuthError(
-    error: unknown,
-    res: Response,
-    next: NextFunction,
-): void {
-    if (error instanceof AuthServiceError) {
-        res.status(error.status).json({
-            message: error.message,
-            code: error.code,
-        });
-        return;
-    }
-
-    next(error);
-}
 
 function buildSessionData(
     req: Request,
@@ -107,7 +91,7 @@ router.post(
 
             res.status(201).json(result);
         } catch (error) {
-            handleAuthError(error, res, next);
+            handleServiceError(error, res, next);
         }
     },
 );
@@ -158,7 +142,7 @@ router.post(
 
             res.status(200).json(result);
         } catch (error) {
-            handleAuthError(error, res, next);
+            handleServiceError(error, res, next);
         }
     },
 );
@@ -194,7 +178,7 @@ router.post(
             await authService.logout(sessionId);
             res.status(204).send();
         } catch (error) {
-            handleAuthError(error, res, next);
+            handleServiceError(error, res, next);
         }
     },
 );

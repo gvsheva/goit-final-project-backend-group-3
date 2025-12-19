@@ -1,5 +1,6 @@
 import type Joi from "joi";
-import { type Response } from "express";
+import { type Response, type NextFunction } from "express";
+import { ServiceError } from "../services/errors.ts";
 
 export function validateBody<T>(
     schema: Joi.ObjectSchema<T>,
@@ -17,4 +18,20 @@ export function validateBody<T>(
     }
 
     return value as T;
+}
+
+export function handleServiceError(
+    error: unknown,
+    res: Response,
+    next: NextFunction,
+): void {
+    if (error instanceof ServiceError) {
+        res.status(error.status).json({
+            message: error.message,
+            code: error.code,
+        });
+        return;
+    }
+
+    next(error);
 }

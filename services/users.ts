@@ -1,10 +1,11 @@
 import type { InferAttributes } from "sequelize";
-
-import {Recipe, Session, User, UserFollower} from "../models/index.ts";
-import {FavoriteRecipe} from "../models/favoriteRecipe.ts";
-import {AVATAR_DIRECTORY} from "../config/directories.ts";
 import path from "path";
-import fs from "fs";
+import fs from "fs/promises";
+
+import { Recipe, Session, User, UserFollower } from "../models/index.ts";
+import { FavoriteRecipe } from "../models/favoriteRecipe.ts";
+import { AVATAR_DIRECTORY } from "../config/directories.ts";
+import { ServiceError } from "./errors.ts";
 
 export type UserDto = Pick<
     InferAttributes<User>,
@@ -27,6 +28,10 @@ export interface SessionDto {
     closed: boolean;
     createdAt: Date;
     updatedAt: Date;
+}
+
+export interface AvatarUpdateResult {
+    avatar: string;
 }
 
 const publicUserAttributes = [
@@ -58,11 +63,11 @@ export class UsersService {
         return this.toUserDto(user);
     }
 
-    async getCurrentUser(userId: string): Promise<CurrentUserDto | null> {
+    async getCurrentUser(userId: string): Promise<CurrentUserDto> {
         const user = await User.findByPk(userId);
 
         if (!user) {
-            throw new Error('User not found');
+            throw new ServiceError("User not found", 404, "USER_NOT_FOUND");
         }
 
         const [
@@ -98,6 +103,10 @@ export class UsersService {
     }
 
     async getUserSessions(userId: string): Promise<SessionDto[]> {
+        if (!userId) {
+            throw new ServiceError("User ID is required", 400, "INVALID_USER_ID");
+        }
+
         const sessions = await Session.findAll({
             where: { userId },
             order: [["createdAt", "DESC"], ["id", "ASC"]],
@@ -136,36 +145,49 @@ export class UsersService {
         return true;
     }
 
-    async updateAvatar(userId: string, tempFilePath: string) {
+    async updateAvatar(userId: string, tempFilePath: string): Promise<AvatarUpdateResult> {
         const user = await User.findByPk(userId);
-        if (!user) throw new Error("User not found");
+        if (!user) {
+            throw new ServiceError("User not found", 404, "USER_NOT_FOUND");
+        }
 
-        if (!fs.existsSync(AVATAR_DIRECTORY)) {
-            fs.mkdirSync(AVATAR_DIRECTORY, { recursive: true });
+        try {
+            await fs.access(AVATAR_DIRECTORY);
+        } catch {
+            await fs.mkdir(AVATAR_DIRECTORY, { recursive: true });
         }
 
         const extension = path.extname(tempFilePath);
         const newFileName = `${userId}-${Date.now()}${extension}`;
         const targetPath = path.join(AVATAR_DIRECTORY, newFileName);
 
-        fs.renameSync(tempFilePath, targetPath);
+        await fs.rename(tempFilePath, targetPath);
 
         if (user.avatar) {
-            const oldFileName = path.basename(user.avatar);
-            const oldPath = path.join(AVATAR_DIRECTORY, oldFileName);
-
-            if (fs.existsSync(oldPath)) {
-                try {
-                    fs.unlinkSync(oldPath);
-                } catch (err) {
-                    console.error("Failed to delete old avatar:", err);
-                }
-            }
+            await this.deleteOldAvatar(user.avatar);
         }
+
         const relativePath = "/" + path.posix.join("public", "avatar", newFileName);
         await user.update({ avatar: relativePath });
+
         return { avatar: relativePath };
-    };
+    }
+
+    private async deleteOldAvatar(avatarPath: string): Promise<void> {
+        try {
+            const oldFileName = path.basename(avatarPath);
+            const oldPath = path.join(AVATAR_DIRECTORY, oldFileName);
+
+            try {
+                await fs.access(oldPath);
+                await fs.unlink(oldPath);
+            } catch {
+                // File doesn't exist, nothing to delete
+            }
+        } catch (err) {
+            console.error("Failed to delete old avatar:", err);
+        }
+    }
 
     private toUserDto(user: User): UserDto {
         return user.get({ plain: true }) as UserDto;
