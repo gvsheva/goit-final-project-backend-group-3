@@ -4,15 +4,14 @@ import {
     type Request,
     type Response,
 } from "express";
+import Joi from "joi";
 import jwt from "jsonwebtoken";
 import authConfig from "../config/auth.ts";
 import authMiddleware from "../middlewares/auth.ts";
 
 import { uploadSingleImage } from "../middlewares/upload.ts";
 import RecipeService from "../services/recipeService.ts";
-import { handleServiceError } from "./utils.ts";
-
-const recipeService = new RecipeService();
+import { handleServiceError, validateBody } from "./utils.ts";
 
 import {
     FavoriteRecipe,
@@ -22,6 +21,11 @@ import {
 } from "../models/index.ts";
 
 const router = Router();
+const recipeService = new RecipeService();
+
+const DEFAULT_LIMIT = 4;
+const MAX_LIMIT = 50;
+const MIN_LIMIT = 1;
 
 type IngredientJoin = { measure: string | null };
 
@@ -29,6 +33,25 @@ type IngredientWithJoin = Ingredient & {
     through?: IngredientJoin;
     RecipeIngredient?: IngredientJoin;
 };
+
+interface RecipeWithFavoritesCount extends Recipe {
+    dataValues: Recipe["dataValues"] & {
+        favoritesCount?: string | number;
+    };
+}
+
+const createRecipeSchema = Joi.object({
+    name: Joi.string().required().min(1).max(255),
+    description: Joi.string().required().min(1),
+    instructions: Joi.string().required().min(1),
+    time: Joi.number().required().positive().integer(),
+    categoryId: Joi.string().required(),
+    areaId: Joi.string().required(),
+    ingredients: Joi.alternatives()
+        .try(Joi.array().items(Joi.string()), Joi.string())
+        .optional()
+        .default([]),
+}).options({ allowUnknown: true, abortEarly: false });
 
 async function getOptionalUserId(req: Request): Promise<string | null> {
     const header = req.get("authorization");
@@ -62,20 +85,26 @@ function getMeasure(ing: IngredientWithJoin): string | null {
     return ing.RecipeIngredient?.measure ?? ing.through?.measure ?? null;
 }
 
+function getFavoritesCount(recipe: RecipeWithFavoritesCount): number {
+    const count = recipe.dataValues.favoritesCount;
+    if (count === undefined || count === null) return 0;
+    return typeof count === "string" ? parseInt(count, 10) || 0 : Number(count);
+}
+
 /**
  * @openapi
  * /recipes/popular:
  *   get:
  *     summary: Get popular recipes
  *     tags: [Recipes]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           default: 4
+ *           minimum: 1
+ *           maximum: 50
  *     responses:
  *       200:
  *         description: List of popular recipes
@@ -104,18 +133,17 @@ function getMeasure(ing: IngredientWithJoin): string | null {
  *                       isFavorite:
  *                         type: boolean
  */
-
 router.get(
     "/popular",
     async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const limitRaw = Number(req.query.limit ?? 4);
+            const limitRaw = Number(req.query.limit ?? DEFAULT_LIMIT);
             const limit = Number.isFinite(limitRaw)
-                ? Math.min(Math.max(limitRaw, 1), 50)
-                : 4;
+                ? Math.min(Math.max(limitRaw, MIN_LIMIT), MAX_LIMIT)
+                : DEFAULT_LIMIT;
             const userId = await getOptionalUserId(req);
 
-            const rows = await Recipe.findAll({
+            const rows = (await Recipe.findAll({
                 attributes: {
                     include: [
                         [
@@ -142,7 +170,7 @@ router.get(
                     ["createdAt", "DESC"],
                 ],
                 limit,
-            });
+            })) as RecipeWithFavoritesCount[];
 
             const recipeIds = rows.map((r) => r.id);
 
@@ -169,14 +197,12 @@ router.get(
                               avatarUrl: r.owner.avatar ?? null,
                           }
                         : null,
-                    favoritesCount: Number(
-                        (r as any).get?.("favoritesCount") ?? 0,
-                    ),
+                    favoritesCount: getFavoritesCount(r),
                     isFavorite: userId ? favoritesSet.has(r.id) : false,
                 })),
             });
         } catch (error) {
-            next(error);
+            handleServiceError(error, res, next);
         }
     },
 );
@@ -225,38 +251,36 @@ router.get(
  *                 format: binary
  *     responses:
  *       201:
- *         description: Recipe created
+ *         description: Recipe created successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
  */
-
 router.post(
     "/",
     authMiddleware,
     uploadSingleImage,
     async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const {
-                name,
-                description,
-                instructions,
-                time,
-                categoryId,
-                areaId,
-                ingredients = [],
-            } = req.body;
+            const validated = validateBody(createRecipeSchema, req.body, res);
+            if (!validated) return;
+
+            const { name, description, instructions, time, categoryId, areaId, ingredients } =
+                validated;
 
             const img = req.file?.path ?? null;
+            const userId = req.session.user.id;
 
             const recipe = await recipeService.createRecipe({
-                ownerId: req.session!.user!.id,
+                ownerId: userId,
                 name,
                 description,
                 instructions,
                 time: Number(time),
                 categoryId,
                 areaId,
-                ingredients: Array.isArray(ingredients)
-                    ? ingredients
-                    : [ingredients],
+                ingredients: Array.isArray(ingredients) ? ingredients : [ingredients],
                 img,
             });
 
@@ -267,10 +291,27 @@ router.post(
     },
 );
 
+/**
+ * @openapi
+ * /recipes/favorites:
+ *   get:
+ *     tags:
+ *       - Recipes
+ *     summary: Get user's favorite recipes
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of favorite recipes
+ *       401:
+ *         description: Unauthorized
+ *       501:
+ *         description: Not implemented
+ */
 router.get(
     "/favorites",
     authMiddleware,
-    function (_req: Request, res: Response) {
+    (_req: Request, res: Response) => {
         sendStub(res, "GET /recipes/favorites");
     },
 );
@@ -287,18 +328,22 @@ router.get(
  *     responses:
  *       200:
  *         description: List of user's recipes
+ *       401:
+ *         description: Unauthorized
  */
-
-router.get("/own", authMiddleware, async (req, res, next) => {
-    try {
-        const recipes = await recipeService.getOwnRecipes(
-            req.session!.user!.id,
-        );
-        res.json(recipes);
-    } catch (e) {
-        handleServiceError(e, res, next);
-    }
-});
+router.get(
+    "/own",
+    authMiddleware,
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const userId = req.session.user.id;
+            const recipes = await recipeService.getOwnRecipes(userId);
+            res.json(recipes);
+        } catch (e) {
+            handleServiceError(e, res, next);
+        }
+    },
+);
 
 /**
  * @openapi
@@ -394,7 +439,7 @@ router.get(
                 isFavorite,
             });
         } catch (error) {
-            next(error);
+            handleServiceError(error, res, next);
         }
     },
 );
@@ -414,8 +459,12 @@ router.get(
  *         schema:
  *           type: string
  *     responses:
- *       200:
+ *       201:
  *         description: Added to favorites
+ *       404:
+ *         description: Recipe not found
+ *       401:
+ *         description: Unauthorized
  */
 router.post(
     "/:recipeId/favorite",
@@ -423,7 +472,7 @@ router.post(
     async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { recipeId } = req.params;
-            const userId = req.session!.user.id;
+            const userId = req.session.user.id;
 
             const recipe = await Recipe.findByPk(recipeId);
             if (!recipe) {
@@ -436,9 +485,9 @@ router.post(
                 defaults: { userId, recipeId },
             });
 
-            res.status(200).json({ isFavorite: true });
+            res.status(201).json({ isFavorite: true });
         } catch (error) {
-            next(error);
+            handleServiceError(error, res, next);
         }
     },
 );
@@ -458,8 +507,12 @@ router.post(
  *         schema:
  *           type: string
  *     responses:
- *       200:
+ *       204:
  *         description: Removed from favorites
+ *       404:
+ *         description: Recipe not found
+ *       401:
+ *         description: Unauthorized
  */
 router.delete(
     "/:recipeId/favorite",
@@ -467,7 +520,7 @@ router.delete(
     async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { recipeId } = req.params;
-            const userId = req.session!.user.id;
+            const userId = req.session.user.id;
 
             const recipe = await Recipe.findByPk(recipeId);
             if (!recipe) {
@@ -477,9 +530,9 @@ router.delete(
 
             await FavoriteRecipe.destroy({ where: { userId, recipeId } });
 
-            res.status(200).json({ isFavorite: false });
+            res.status(204).send();
         } catch (error) {
-            next(error);
+            handleServiceError(error, res, next);
         }
     },
 );
@@ -502,17 +555,23 @@ router.delete(
  *     responses:
  *       204:
  *         description: Recipe deleted
+ *       404:
+ *         description: Recipe not found or access denied
+ *       401:
+ *         description: Unauthorized
  */
+router.delete(
+    "/:recipeId",
+    authMiddleware,
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const userId = req.session.user.id;
+            await recipeService.deleteOwnRecipe(req.params.recipeId, userId);
+            res.status(204).send();
+        } catch (e) {
+            handleServiceError(e, res, next);
+        }
+    },
+);
 
-router.delete("/:recipeId", authMiddleware, async (req, res, next) => {
-    try {
-        await recipeService.deleteOwnRecipe(
-            req.params.recipeId,
-            req.session!.user!.id,
-        );
-        res.status(204).send();
-    } catch (e) {
-        handleServiceError(e, res, next);
-    }
-});
 export default router;

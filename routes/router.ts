@@ -1,22 +1,23 @@
 import {
-  Router,
-  type NextFunction,
-  type Request,
-  type Response,
+    Router,
+    type Request,
+    type Response,
 } from "express";
 
-var router = Router();
+const router = Router();
 
 /**
  * @openapi
  * /:
- *  get:
- *      description: Get the home page
- *      responses:
- *          200:
- *              description: Successful response
+ *   get:
+ *     summary: Get the home page
+ *     tags: [General]
+ *     responses:
+ *       200:
+ *         description: Successful response
  */
-router.get("/", function (req: Request, res: Response, next: NextFunction) {
-  res.send("Welcome to the Recipe API!");
+router.get("/", (_req: Request, res: Response) => {
+    res.send("Welcome to the Recipe API!");
 });
+
 export default router;
