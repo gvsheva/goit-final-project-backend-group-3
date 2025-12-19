@@ -396,10 +396,6 @@ router.get(
     },
 );
 
-router.post("/", authMiddleware, function (_req: Request, res: Response) {
-    sendStub(res, "POST /recipes");
-});
-
 /**
  * @openapi
  * /recipes/{recipeId}/favorite:
