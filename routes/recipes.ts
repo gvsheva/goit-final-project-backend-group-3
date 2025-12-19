@@ -117,7 +117,7 @@ router.get(
                     include: [
                         [
                             Recipe.sequelize!.literal(
-                                `(SELECT COUNT(*) FROM "Favorites" f WHERE f."recipeId" = "Recipe"."id")`,
+                                `(SELECT COUNT(*) FROM "Favorites" f WHERE f."recipeId" = "Recipe"."id")`
                             ),
                             "favoritesCount",
                         ],
@@ -132,7 +132,7 @@ router.get(
                 order: [
                     [
                         Recipe.sequelize!.literal(
-                            `(SELECT COUNT(*) FROM "Favorites" f WHERE f."recipeId" = "Recipe"."id")`,
+                            `(SELECT COUNT(*) FROM "Favorites" f WHERE f."recipeId" = "Recipe"."id")`
                         ),
                         "DESC",
                     ],
@@ -167,7 +167,7 @@ router.get(
                           }
                         : null,
                     favoritesCount: Number(
-                        (r as any).get?.("favoritesCount") ?? 0,
+                        (r as any).get?.("favoritesCount") ?? 0
                     ),
                     isFavorite: userId ? favoritesSet.has(r.id) : false,
                 })),
@@ -175,7 +175,7 @@ router.get(
         } catch (error) {
             next(error);
         }
-    },
+    }
 );
 
 /**
@@ -261,7 +261,7 @@ router.post(
         } catch (err) {
             next(err);
         }
-    },
+    }
 );
 
 router.get(
@@ -269,7 +269,7 @@ router.get(
     authMiddleware,
     function (_req: Request, res: Response) {
         sendStub(res, "GET /recipes/favorites");
-    },
+    }
 );
 
 /**
@@ -289,11 +289,120 @@ router.get(
 router.get("/own", authMiddleware, async (req, res, next) => {
     try {
         const recipes = await recipeService.getOwnRecipes(
-            req.session!.user!.id,
+            req.session!.user!.id
         );
         res.json(recipes);
     } catch (e) {
         next(e);
+    }
+});
+
+/**
+ * @openapi
+ * /recipes:
+ *   get:
+ *     summary: Get all recipes with filtering and pagination
+ *     tags: [Recipes]
+ *     parameters:
+ *       - in: query
+ *         name: categoryId
+ *         schema:
+ *           type: string
+ *         description: Filter by category ID
+ *       - in: query
+ *         name: areaId
+ *         schema:
+ *           type: string
+ *         description: Filter by area ID
+ *       - in: query
+ *         name: ingredientName
+ *         schema:
+ *           type: string
+ *         description: Filter by ingredient name
+ *       - in: query
+ *         name: ownerId
+ *         schema:
+ *           type: string
+ *         description: Filter by owner ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Items per page
+ *     responses:
+ *       200:
+ *         description: List of recipes with pagination info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total:
+ *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 limit:
+ *                   type: integer
+ *                 totalPages:
+ *                   type: integer
+ *                 recipes:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       404:
+ *         description: No recipes found
+ */
+router.get("/", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const {
+            categoryId = null,
+            areaId = null,
+            ingredientName = null,
+            ownerId = null,
+            page = "1",
+            limit = "10",
+        } = req.query;
+
+        const pageNum = parseInt(page as string, 10);
+        const limitNum = parseInt(limit as string, 10);
+
+        if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
+            res.status(400).json({
+                message:
+                    "Invalid pagination parameters. Page must be >= 1, limit between 1-100",
+            });
+            return;
+        }
+
+        const { count, rows } = await recipeService.getAllRecipes(
+            {
+                categoryId: categoryId as string | null,
+                areaId: areaId as string | null,
+                ingredientName: ingredientName as string | null,
+                ownerId: ownerId as string | null,
+            },
+            {
+                limit: limitNum,
+                offset: (pageNum - 1) * limitNum,
+            }
+        );
+
+        res.status(200).json({
+            total: count,
+            page: pageNum,
+            limit: limitNum,
+            totalPages: Math.ceil(count / limitNum),
+            recipes: rows,
+        });
+    } catch (error) {
+        next(error);
     }
 });
 
@@ -393,12 +502,8 @@ router.get(
         } catch (error) {
             next(error);
         }
-    },
+    }
 );
-
-router.post("/", authMiddleware, function (_req: Request, res: Response) {
-    sendStub(res, "POST /recipes");
-});
 
 /**
  * @openapi
@@ -441,7 +546,7 @@ router.post(
         } catch (error) {
             next(error);
         }
-    },
+    }
 );
 
 /**
@@ -482,7 +587,7 @@ router.delete(
         } catch (error) {
             next(error);
         }
-    },
+    }
 );
 
 /**
@@ -509,7 +614,7 @@ router.delete("/:recipeId", authMiddleware, async (req, res, next) => {
     try {
         await recipeService.deleteOwnRecipe(
             req.params.recipeId,
-            req.session!.user!.id,
+            req.session!.user!.id
         );
         res.status(204).send();
     } catch (e) {

@@ -31,7 +31,6 @@ export async function createRecipe(data: CreateRecipeDTO) {
         areaId,
         ingredients,
         img,
-
     } = data;
 
     const category = await Category.findByPk(categoryId);
@@ -46,7 +45,7 @@ export async function createRecipe(data: CreateRecipeDTO) {
         const recipeImagesDir = path.join(PUBLIC_DIRECTORY, "recipes");
 
         if (!fs.existsSync(recipeImagesDir)) {
-            fs.mkdirSync(recipeImagesDir, { recursive: true});
+            fs.mkdirSync(recipeImagesDir, { recursive: true });
         }
 
         const fileName = path.basename(img);
@@ -55,7 +54,6 @@ export async function createRecipe(data: CreateRecipeDTO) {
         fs.renameSync(img, targetPath);
 
         finalImagePath = targetPath;
-
     }
 
     const recipe = await Recipe.create({
@@ -70,20 +68,18 @@ export async function createRecipe(data: CreateRecipeDTO) {
     });
 
     if (ingredients.length > 0) {
-
         for (const ingName of ingredients) {
             let ingredient = await Ingredient.findOne({
                 where: { name: ingName },
             });
 
             if (!ingredient) {
-                ingredient = await Ingredient.create({ name: ingName});
+                ingredient = await Ingredient.create({ name: ingName });
             }
 
             await RecipeIngredient.create({
                 recipeId: recipe.id,
                 ingredientId: ingredient.id,
-
             });
         }
     }
@@ -94,11 +90,9 @@ export async function createRecipe(data: CreateRecipeDTO) {
             Category,
             Area,
         ],
-    })
+    });
 
     return createdRecipe;
-    
-
 }
 
 export async function getOwnRecipes(ownerId: string) {
@@ -114,13 +108,13 @@ export async function getOwnRecipes(ownerId: string) {
 
 export async function deleteOwnRecipe(recipeId: string, ownerId: string) {
     const recipe = await Recipe.findOne({
-        where: { id: recipeId, ownerId},
-    })
+        where: { id: recipeId, ownerId },
+    });
 
     if (!recipe) {
         throw new Error("Recipe not found or access denied");
     }
-    
+
     if (recipe.img) {
         try {
             fs.unlinkSync(recipe.img);
@@ -129,7 +123,67 @@ export async function deleteOwnRecipe(recipeId: string, ownerId: string) {
 
     await RecipeIngredient.destroy({
         where: { recipeId },
-    })
+    });
 
     await recipe.destroy();
+}
+
+interface GetAllRecipesFilters {
+    categoryId?: string | null;
+    areaId?: string | null;
+    ingredientName?: string | null;
+    ownerId?: string | null;
+}
+
+interface PaginationOptions {
+    limit: number;
+    offset: number;
+}
+
+export async function getAllRecipes(
+    filters: GetAllRecipesFilters,
+    pagination: PaginationOptions
+) {
+    const { categoryId, areaId, ingredientName, ownerId } = filters;
+    const { limit, offset } = pagination;
+
+    const whereClause: any = {};
+
+    if (categoryId) whereClause.categoryId = categoryId;
+    if (areaId) whereClause.areaId = areaId;
+    if (ownerId) whereClause.ownerId = ownerId;
+
+    const includeOptions: any[] = [
+        { model: Category, attributes: ["id", "name"] },
+        { model: Area, attributes: ["id", "name"] },
+    ];
+
+    // ingredient filter
+    if (ingredientName) {
+        includeOptions.push({
+            model: Ingredient,
+            as: "ingredients",
+            attributes: ["id", "name", "img"],
+            where: { name: ingredientName },
+            through: { attributes: ["measure"] },
+        });
+    } else {
+        includeOptions.push({
+            model: Ingredient,
+            as: "ingredients",
+            attributes: ["id", "name", "img"],
+            through: { attributes: ["measure"] },
+        });
+    }
+
+    const { count, rows } = await Recipe.findAndCountAll({
+        where: whereClause,
+        include: includeOptions,
+        limit,
+        offset,
+        order: [["createdAt", "DESC"]],
+        distinct: true,
+    });
+
+    return { count, rows };
 }
