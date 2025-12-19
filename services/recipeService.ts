@@ -76,6 +76,17 @@ export class RecipeService {
             img,
         } = data;
 
+        if (!img) {
+            throw new ServiceError("Recipe image is required", 400, "IMAGE_REQUIRED");
+        } 
+        
+        try {
+            await fs.access(img);
+        } catch {
+            throw new ServiceError("Uploaded image not found", 400, "IMAGE_NOT_FOUND");
+        }
+
+
         if (!name || name.trim().length === 0) {
             throw new ServiceError("Recipe name is required", 400, "INVALID_NAME");
         }
@@ -102,11 +113,8 @@ export class RecipeService {
             throw new ServiceError("Invalid areaId", 400, "INVALID_AREA");
         }
 
-        let finalImagePath: string | null = null;
+        const finalImagePath = await this.moveImageToPublic(img);
 
-        if (img) {
-            finalImagePath = await this.moveImageToPublic(img);
-        }
 
         const recipe = await Recipe.create({
             id: nanoid(),

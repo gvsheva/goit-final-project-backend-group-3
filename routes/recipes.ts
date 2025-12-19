@@ -225,6 +225,7 @@ router.get(
  *               - time
  *               - categoryId
  *               - areaId
+ *               - img
  *             properties:
  *               name:
  *                 type: string
@@ -266,7 +267,12 @@ router.post(
             const { name, description, instructions, time, categoryId, areaId, ingredientIds } =
                 validated;
 
-            const img = req.file?.path ?? null;
+            const img = req.file?.path;
+            if (!img) {res.status(400).json({ message: "Recipe image is required" });
+                return;
+            }
+
+
             const userId = req.session.user.id;
 
             const recipe = await recipeService.createRecipe({
