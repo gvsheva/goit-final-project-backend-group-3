@@ -4,6 +4,7 @@ import logger from "morgan";
 import openapiJSdoc from "swagger-jsdoc";
 import openapiUI from "swagger-ui-express";
 import cors from "cors";
+import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
 import indexRouter from "./routes/router.ts";
@@ -78,6 +79,8 @@ app.use(
         origin: allowedOrigins,
     }),
 );
+
+app.use(helmet());
 
 app.use(logger("dev"));
 app.use(json());
