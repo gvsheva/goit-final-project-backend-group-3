@@ -5,6 +5,7 @@ import type { InferAttributes } from "sequelize";
 
 import authConfig from "../config/auth.ts";
 import { Session, User } from "../models/index.ts";
+import { ServiceError } from "./errors.ts";
 
 type PublicUser = Omit<InferAttributes<User>, "password">;
 
@@ -34,15 +35,11 @@ export interface AuthServiceOptions {
     bcryptSaltRounds?: number;
 }
 
-export class AuthServiceError extends Error {
-    status: number;
-    code: string;
-
+/** @deprecated Use ServiceError instead */
+export class AuthServiceError extends ServiceError {
     constructor(message: string, status = 400, code = "AUTH_ERROR") {
-        super(message);
+        super(message, status, code);
         this.name = "AuthServiceError";
-        this.status = status;
-        this.code = code;
     }
 }
 

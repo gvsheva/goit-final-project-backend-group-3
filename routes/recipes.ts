@@ -9,7 +9,10 @@ import authConfig from "../config/auth.ts";
 import authMiddleware from "../middlewares/auth.ts";
 
 import { uploadSingleImage } from "../middlewares/upload.ts";
-import * as recipeService from "../services/recipeService.ts";
+import RecipeService from "../services/recipeService.ts";
+import { handleServiceError } from "./utils.ts";
+
+const recipeService = new RecipeService();
 
 import {
     FavoriteRecipe,
@@ -259,7 +262,7 @@ router.post(
 
             res.status(201).json(recipe);
         } catch (err) {
-            next(err);
+            handleServiceError(err, res, next);
         }
     },
 );
@@ -293,7 +296,7 @@ router.get("/own", authMiddleware, async (req, res, next) => {
         );
         res.json(recipes);
     } catch (e) {
-        next(e);
+        handleServiceError(e, res, next);
     }
 });
 
@@ -509,7 +512,7 @@ router.delete("/:recipeId", authMiddleware, async (req, res, next) => {
         );
         res.status(204).send();
     } catch (e) {
-        next(e);
+        handleServiceError(e, res, next);
     }
 });
 export default router;

@@ -7,7 +7,8 @@ import {
 
 import authMiddleware from "../middlewares/auth.ts";
 import UsersService from "../services/users.ts";
-import {uploadSingleImage} from "../middlewares/upload.ts";
+import { uploadSingleImage } from "../middlewares/upload.ts";
+import { handleServiceError } from "./utils.ts";
 
 const router = Router();
 const usersService = new UsersService();
@@ -61,7 +62,7 @@ router.get(
             const users = await usersService.getUsers();
             res.json(users);
         } catch (error) {
-            next(error);
+            handleServiceError(error, res, next);
         }
     },
 );
@@ -110,7 +111,7 @@ router.get(
             const userData = await usersService.getCurrentUser(user.id);
             res.json(userData);
         } catch (error) {
-            next(error);
+            handleServiceError(error, res, next);
         }
     },
 );
@@ -173,7 +174,7 @@ router.get(
 
             res.json(user);
         } catch (error) {
-            next(error);
+            handleServiceError(error, res, next);
         }
     },
 );
@@ -218,11 +219,11 @@ router.get(
     authMiddleware,
     async function (req: Request, res: Response, next: NextFunction) {
         try {
-            const userId = req.session?.userId;
+            const userId = req.session.user.id;
             const sessions = await usersService.getUserSessions(userId);
             res.json(sessions);
         } catch (error) {
-            next(error);
+            handleServiceError(error, res, next);
         }
     },
 );
@@ -266,7 +267,7 @@ router.get(
             }
             res.json(session);
         } catch (error) {
-            next(error);
+            handleServiceError(error, res, next);
         }
     },
 );
@@ -310,7 +311,7 @@ router.delete(
             }
             res.status(204).send();
         } catch (error) {
-            next(error);
+            handleServiceError(error, res, next);
         }
     },
 );
@@ -364,7 +365,7 @@ router.patch(
             const result = await usersService.updateAvatar(userId, req.file.path);
             res.json(result);
         } catch (error) {
-            next(error);
+            handleServiceError(error, res, next);
         }
     },
 );
