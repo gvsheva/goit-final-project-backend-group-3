@@ -148,7 +148,7 @@ router.get(
                     include: [
                         [
                             Recipe.sequelize!.literal(
-                                `(SELECT COUNT(*) FROM "Favorites" f WHERE f."recipeId" = "Recipe"."id")`,
+                                `(SELECT COUNT(*) FROM "FavoriteRecipes" f WHERE f."recipeId" = "Recipe"."id")`,
                             ),
                             "favoritesCount",
                         ],
@@ -163,7 +163,7 @@ router.get(
                 order: [
                     [
                         Recipe.sequelize!.literal(
-                            `(SELECT COUNT(*) FROM "Favorites" f WHERE f."recipeId" = "Recipe"."id")`,
+                            `(SELECT COUNT(*) FROM "FavoriteRecipes" f WHERE f."recipeId" = "Recipe"."id")`,
                         ),
                         "DESC",
                     ],
