@@ -31,6 +31,7 @@ export async function createRecipe(data: CreateRecipeDTO) {
         areaId,
         ingredients,
         img,
+
     } = data;
 
     const category = await Category.findByPk(categoryId);
@@ -45,7 +46,7 @@ export async function createRecipe(data: CreateRecipeDTO) {
         const recipeImagesDir = path.join(PUBLIC_DIRECTORY, "recipes");
 
         if (!fs.existsSync(recipeImagesDir)) {
-            fs.mkdirSync(recipeImagesDir, { recursive: true });
+            fs.mkdirSync(recipeImagesDir, { recursive: true});
         }
 
         const fileName = path.basename(img);
@@ -54,6 +55,7 @@ export async function createRecipe(data: CreateRecipeDTO) {
         fs.renameSync(img, targetPath);
 
         finalImagePath = targetPath;
+
     }
 
     const recipe = await Recipe.create({
@@ -68,9 +70,10 @@ export async function createRecipe(data: CreateRecipeDTO) {
     });
 
     if (ingredients.length > 0) {
+
         for (const ingName of ingredients) {
             let ingredient = await Ingredient.findOne({
-                where: { name: ingName },
+                where: { name: ingName},
             });
 
             if (!ingredient) {
@@ -80,6 +83,7 @@ export async function createRecipe(data: CreateRecipeDTO) {
             await RecipeIngredient.create({
                 recipeId: recipe.id,
                 ingredientId: ingredient.id,
+
             });
         }
     }
@@ -90,9 +94,11 @@ export async function createRecipe(data: CreateRecipeDTO) {
             Category,
             Area,
         ],
-    });
+    })
 
     return createdRecipe;
+
+
 }
 
 export async function getOwnRecipes(ownerId: string) {
@@ -103,7 +109,7 @@ export async function getOwnRecipes(ownerId: string) {
             Category,
             Area,
         ],
-    });
+    })
 }
 
 export async function deleteOwnRecipe(recipeId: string, ownerId: string) {
@@ -114,7 +120,6 @@ export async function deleteOwnRecipe(recipeId: string, ownerId: string) {
     if (!recipe) {
         throw new Error("Recipe not found or access denied");
     }
-
     if (recipe.img) {
         try {
             fs.unlinkSync(recipe.img);
@@ -123,7 +128,7 @@ export async function deleteOwnRecipe(recipeId: string, ownerId: string) {
 
     await RecipeIngredient.destroy({
         where: { recipeId },
-    });
+    })
 
     await recipe.destroy();
 }

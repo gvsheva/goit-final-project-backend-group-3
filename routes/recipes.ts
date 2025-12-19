@@ -117,7 +117,7 @@ router.get(
                     include: [
                         [
                             Recipe.sequelize!.literal(
-                                `(SELECT COUNT(*) FROM "Favorites" f WHERE f."recipeId" = "Recipe"."id")`
+                                `(SELECT COUNT(*) FROM "Favorites" f WHERE f."recipeId" = "Recipe"."id")`,
                             ),
                             "favoritesCount",
                         ],
@@ -132,7 +132,7 @@ router.get(
                 order: [
                     [
                         Recipe.sequelize!.literal(
-                            `(SELECT COUNT(*) FROM "Favorites" f WHERE f."recipeId" = "Recipe"."id")`
+                            `(SELECT COUNT(*) FROM "Favorites" f WHERE f."recipeId" = "Recipe"."id")`,
                         ),
                         "DESC",
                     ],
@@ -167,7 +167,7 @@ router.get(
                           }
                         : null,
                     favoritesCount: Number(
-                        (r as any).get?.("favoritesCount") ?? 0
+                        (r as any).get?.("favoritesCount") ?? 0,
                     ),
                     isFavorite: userId ? favoritesSet.has(r.id) : false,
                 })),
@@ -175,7 +175,7 @@ router.get(
         } catch (error) {
             next(error);
         }
-    }
+    },
 );
 
 /**
@@ -261,7 +261,7 @@ router.post(
         } catch (err) {
             next(err);
         }
-    }
+    },
 );
 
 router.get(
@@ -269,7 +269,7 @@ router.get(
     authMiddleware,
     function (_req: Request, res: Response) {
         sendStub(res, "GET /recipes/favorites");
-    }
+    },
 );
 
 /**
@@ -289,7 +289,7 @@ router.get(
 router.get("/own", authMiddleware, async (req, res, next) => {
     try {
         const recipes = await recipeService.getOwnRecipes(
-            req.session!.user!.id
+            req.session!.user!.id,
         );
         res.json(recipes);
     } catch (e) {
@@ -502,7 +502,7 @@ router.get(
         } catch (error) {
             next(error);
         }
-    }
+    },
 );
 
 /**
@@ -546,7 +546,7 @@ router.post(
         } catch (error) {
             next(error);
         }
-    }
+    },
 );
 
 /**
@@ -587,7 +587,7 @@ router.delete(
         } catch (error) {
             next(error);
         }
-    }
+    },
 );
 
 /**
@@ -614,7 +614,7 @@ router.delete("/:recipeId", authMiddleware, async (req, res, next) => {
     try {
         await recipeService.deleteOwnRecipe(
             req.params.recipeId,
-            req.session!.user!.id
+            req.session!.user!.id,
         );
         res.status(204).send();
     } catch (e) {
