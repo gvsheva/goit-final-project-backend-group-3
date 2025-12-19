@@ -73,11 +73,11 @@ export async function createRecipe(data: CreateRecipeDTO) {
 
         for (const ingName of ingredients) {
             let ingredient = await Ingredient.findOne({
-                where: { name: ingName},
+                where: { name: ingName },
             });
 
             if (!ingredient) {
-                ingredient = await Ingredient.create({ name: ingName });
+                ingredient = await Ingredient.create({ name: ingName});
             }
 
             await RecipeIngredient.create({
@@ -98,7 +98,6 @@ export async function createRecipe(data: CreateRecipeDTO) {
 
     return createdRecipe;
 
-
 }
 
 export async function getOwnRecipes(ownerId: string) {
@@ -109,17 +108,18 @@ export async function getOwnRecipes(ownerId: string) {
             Category,
             Area,
         ],
-    })
+    });
 }
 
 export async function deleteOwnRecipe(recipeId: string, ownerId: string) {
     const recipe = await Recipe.findOne({
-        where: { id: recipeId, ownerId },
-    });
+        where: { id: recipeId, ownerId},
+    })
 
     if (!recipe) {
         throw new Error("Recipe not found or access denied");
     }
+    
     if (recipe.img) {
         try {
             fs.unlinkSync(recipe.img);
