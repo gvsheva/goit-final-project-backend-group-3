@@ -9,6 +9,7 @@ import { Ingredient } from "../models/ingredient.ts";
 import { Category } from "../models/category.ts";
 import { Area } from "../models/area.ts";
 import { FavoriteRecipe } from "../models/favoriteRecipe.ts";
+import { User } from "../models/user.ts";
 import { PUBLIC_DIRECTORY } from "../config/directories.ts";
 import { ServiceError } from "./errors.ts";
 
@@ -28,6 +29,7 @@ export type RecipeDto = InferAttributes<Recipe> & {
     ingredients?: InferAttributes<Ingredient>[];
     category?: InferAttributes<Category>;
     area?: InferAttributes<Area>;
+    owner?: Pick<InferAttributes<User>, "id" | "name" | "avatar">;
 };
 
 export interface GetAllRecipesFilters {
@@ -161,6 +163,7 @@ export class RecipeService {
         const includeOptions: any[] = [
             { model: Category, as: "category", attributes: ["id", "name"] },
             { model: Area, as: "area", attributes: ["id", "name"] },
+            { model: User, as: "owner", attributes: ["id", "name", "avatar"] },
         ];
 
         // ingredient filter

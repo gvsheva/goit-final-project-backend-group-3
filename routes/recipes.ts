@@ -482,6 +482,8 @@ router.get("/", async (req: Request, res: Response, next: NextFunction) => {
             return;
         }
 
+        const userId = await getOptionalUserId(req);
+
         const { count, rows } = await recipeService.getAllRecipes(
             {
                 categoryId: categoryId as string | null,
@@ -495,12 +497,33 @@ router.get("/", async (req: Request, res: Response, next: NextFunction) => {
             }
         );
 
+        const recipeIds = rows.map((r) => r.id);
+
+        let favoritesSet = new Set<string>();
+        if (userId && recipeIds.length) {
+            const favs = await FavoriteRecipe.findAll({
+                where: { userId, recipeId: recipeIds },
+                attributes: ["recipeId"],
+            });
+            favoritesSet = new Set(favs.map((f) => f.recipeId));
+        }
+
         res.status(200).json({
             total: count,
             page: pageNum,
             limit: limitNum,
             totalPages: Math.ceil(count / limitNum),
-            recipes: rows,
+            recipes: rows.map((r) => ({
+                ...r,
+                author: r.owner
+                    ? {
+                          id: r.owner.id,
+                          name: r.owner.name,
+                          avatarUrl: r.owner.avatar ?? null,
+                      }
+                    : null,
+                isFavorite: userId ? favoritesSet.has(r.id) : false,
+            })),
         });
     } catch (error) {
         next(error);
