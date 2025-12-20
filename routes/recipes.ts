@@ -77,10 +77,6 @@ async function getOptionalUserId(req: Request): Promise<string | null> {
     }
 }
 
-function sendStub(res: Response, endpoint: string): void {
-    res.status(501).json({ message: `${endpoint} not implemented yet` });
-}
-
 function getMeasure(ing: IngredientWithJoin): string | null {
     return ing.RecipeIngredient?.measure ?? ing.through?.measure ?? null;
 }
