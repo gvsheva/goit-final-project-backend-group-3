@@ -21,7 +21,7 @@ export interface CreateRecipeDTO {
     time: number;
     categoryId: string;
     areaId: string;
-    ingredients: string[];
+    ingredientIds: string[];
     img: string | null;
 }
 
@@ -72,7 +72,7 @@ export class RecipeService {
             time,
             categoryId,
             areaId,
-            ingredients = [],
+            ingredientIds = [],
             img,
         } = data;
 
@@ -84,7 +84,7 @@ export class RecipeService {
             throw new ServiceError("Time must be a positive number", 400, "INVALID_TIME");
         }
 
-        if (ingredients.length > MAX_INGREDIENTS) {
+        if (ingredientIds.length > MAX_INGREDIENTS) {
             throw new ServiceError(
                 `Maximum ${MAX_INGREDIENTS} ingredients allowed`,
                 400,
@@ -120,8 +120,8 @@ export class RecipeService {
             img: finalImagePath,
         });
 
-        if (ingredients.length > 0) {
-            await this.createRecipeIngredients(recipe.id, ingredients);
+        if (ingredientIds.length > 0) {
+            await this.createRecipeIngredients(recipe.id, ingredientIds);
         }
 
         const createdRecipe = await Recipe.findByPk(recipe.id, {
@@ -330,20 +330,17 @@ export class RecipeService {
 
     private async createRecipeIngredients(
         recipeId: string,
-        ingredientNames: string[]
+        ingredientIds: string[]
     ): Promise<void> {
-        const ingredientPromises = ingredientNames.map(async (ingName) => {
-            let ingredient = await Ingredient.findOne({
-                where: { name: ingName },
-            });
+        const ingredientPromises = ingredientIds.map(async (ingredientId) => {
+            const ingredient = await Ingredient.findByPk(ingredientId);
 
             if (!ingredient) {
-                ingredient = await Ingredient.create({
-                    id: nanoid(),
-                    name: ingName,
-                    description: "",
-                    img: "",
-                });
+                throw new ServiceError(
+                    `Ingredient with id "${ingredientId}" not found`,
+                    400,
+                    "INVALID_INGREDIENT"
+                );
             }
 
             return ingredient;

@@ -47,7 +47,7 @@ const createRecipeSchema = Joi.object({
     time: Joi.number().required().positive().integer(),
     categoryId: Joi.string().required(),
     areaId: Joi.string().required(),
-    ingredients: Joi.alternatives()
+    ingredientIds: Joi.alternatives()
         .try(Joi.array().items(Joi.string()), Joi.string())
         .optional()
         .default([]),
@@ -238,10 +238,11 @@ router.get(
  *                 type: string
  *               areaId:
  *                 type: string
- *               ingredients:
+ *               ingredientIds:
  *                 type: array
  *                 items:
  *                   type: string
+ *                 description: Array of existing ingredient IDs from /ingredients endpoint
  *               img:
  *                 type: string
  *                 format: binary
@@ -262,7 +263,7 @@ router.post(
             const validated = validateBody(createRecipeSchema, req.body, res);
             if (!validated) return;
 
-            const { name, description, instructions, time, categoryId, areaId, ingredients } =
+            const { name, description, instructions, time, categoryId, areaId, ingredientIds } =
                 validated;
 
             const img = req.file?.path ?? null;
@@ -276,7 +277,7 @@ router.post(
                 time: Number(time),
                 categoryId,
                 areaId,
-                ingredients: Array.isArray(ingredients) ? ingredients : [ingredients],
+                ingredientIds: Array.isArray(ingredientIds) ? ingredientIds : [ingredientIds],
                 img,
             });
 
