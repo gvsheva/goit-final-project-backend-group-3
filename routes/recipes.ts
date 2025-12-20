@@ -300,19 +300,76 @@ router.post(
  *     summary: Get user's favorite recipes
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Items per page (1-100)
  *     responses:
  *       200:
  *         description: List of favorite recipes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total:
+ *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 limit:
+ *                   type: integer
+ *                 totalPages:
+ *                   type: integer
+ *                 recipes:
+ *                   type: array
+ *                   items:
+ *                     type: object
  *       401:
  *         description: Unauthorized
- *       501:
- *         description: Not implemented
  */
 router.get(
     "/favorites",
     authMiddleware,
-    (_req: Request, res: Response) => {
-        sendStub(res, "GET /recipes/favorites");
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const userId = req.session.user.id;
+            const { page = "1", limit = "10" } = req.query;
+
+            const pageNum = parseInt(page as string, 10);
+            const limitNum = parseInt(limit as string, 10);
+
+            if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
+                res.status(400).json({
+                    message:
+                        "Invalid pagination parameters. Page must be >= 1, limit between 1-100",
+                });
+                return;
+            }
+
+            const { count, rows } = await recipeService.getFavoriteRecipes(userId, {
+                limit: limitNum,
+                offset: (pageNum - 1) * limitNum,
+            });
+
+            res.json({
+                total: count,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: count > 0 ? Math.ceil(count / limitNum) : 0,
+                recipes: rows,
+            });
+        } catch (error) {
+            handleServiceError(error, res, next);
+        }
     },
 );
 

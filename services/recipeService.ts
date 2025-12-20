@@ -8,6 +8,7 @@ import { RecipeIngredient } from "../models/recipeIngredient.ts";
 import { Ingredient } from "../models/ingredient.ts";
 import { Category } from "../models/category.ts";
 import { Area } from "../models/area.ts";
+import { FavoriteRecipe } from "../models/favoriteRecipe.ts";
 import { PUBLIC_DIRECTORY } from "../config/directories.ts";
 import { ServiceError } from "./errors.ts";
 
@@ -39,6 +40,21 @@ export interface GetAllRecipesFilters {
 export interface PaginationOptions {
     limit: number;
     offset: number;
+}
+
+export interface FavoriteRecipeDto {
+    id: string;
+    title: string;
+    description: string;
+    time: number;
+    imageUrl: string | null;
+    author: {
+        id: string;
+        name: string;
+        avatarUrl: string | null;
+    } | null;
+    favoritesCount: number;
+    isFavorite: true;
 }
 
 const MAX_INGREDIENTS = 50;
@@ -202,6 +218,84 @@ export class RecipeService {
         });
 
         await recipe.destroy();
+    }
+
+    async getFavoriteRecipes(
+        userId: string,
+        pagination: PaginationOptions
+    ): Promise<{ count: number; rows: FavoriteRecipeDto[] }> {
+        const { limit, offset } = pagination;
+
+        const { count, rows: favorites } = await FavoriteRecipe.findAndCountAll({
+            where: { userId },
+            offset,
+            limit,
+            order: [["createdAt", "DESC"]],
+        });
+
+        if (favorites.length === 0) {
+            return { count: 0, rows: [] };
+        }
+
+        const recipeIds = favorites.map((f) => f.recipeId);
+
+        const recipes = await Recipe.findAll({
+            where: { id: recipeIds },
+            attributes: {
+                include: [
+                    [
+                        Recipe.sequelize!.literal(
+                            `(SELECT COUNT(*) FROM "FavoriteRecipes" f WHERE f."recipeId" = "Recipe"."id")`
+                        ),
+                        "favoritesCount",
+                    ],
+                ],
+            },
+            include: [
+                {
+                    association: Recipe.associations.owner,
+                    attributes: ["id", "name", "avatar"],
+                },
+            ],
+        });
+
+        const recipeMap = new Map(recipes.map((r) => [r.id, r]));
+        const orderedRecipes = recipeIds
+            .map((id) => recipeMap.get(id))
+            .filter((r): r is Recipe => r !== undefined);
+
+        return {
+            count,
+            rows: orderedRecipes.map((r) => {
+                const dataValues = r.dataValues as Recipe["dataValues"] & {
+                    favoritesCount?: string | number;
+                };
+                const rawCount = dataValues.favoritesCount;
+                const favoritesCount =
+                    rawCount === undefined || rawCount === null
+                        ? 0
+                        : typeof rawCount === "string"
+                          ? parseInt(rawCount, 10) || 0
+                          : Number(rawCount);
+
+                return {
+                    id: r.id,
+                    title: r.name,
+                    description: r.description,
+                    time: r.time,
+                    imageUrl: r.img,
+                    author: r.owner
+                        ? {
+                              id: r.owner.id,
+                              name: r.owner.name,
+                              avatarUrl: r.owner.avatar ?? null,
+                          }
+                        : null,
+                    favoritesCount,
+                    isFavorite: true as const,
+                };
+            }),
+        };
     }
 
     private async moveImageToPublic(tempPath: string): Promise<string> {
