@@ -62,8 +62,8 @@ const authLimiter = rateLimit({
 
 // General rate limiter for all API endpoints
 const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    limit: 100, // 100 requests per window
+    windowMs: 1 * 60 * 1000, // 15 minutes
+    limit: 1000, // 100 requests per window
     message: { message: "Too many requests, please try again later" },
     standardHeaders: true,
     legacyHeaders: false,
