@@ -13,9 +13,6 @@ import { handleServiceError } from "./utils.ts";
 const router = Router();
 const usersService = new UsersService();
 
-function sendStub(res: Response, endpoint: string): void {
-    res.status(501).json({ message: `${endpoint} not implemented yet` });
-}
 
 /**
  * @openapi
@@ -110,6 +107,42 @@ router.get(
             const user = req.session.user;
             const userData = await usersService.getCurrentUser(user.id);
             res.json(userData);
+        } catch (error) {
+            handleServiceError(error, res, next);
+        }
+    },
+);
+
+/**
+ * @openapi
+ * /users/{userId}/followers:
+ *   get:
+ *     summary: Get followers of a specific user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of followers
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ */
+router.get(
+    "/:userId/followers",
+    authMiddleware,
+    async function (req: Request, res: Response, next: NextFunction) {
+        try {
+            const { userId } = req.params;
+            const followers = await usersService.getFollowers(userId);
+            res.json(followers);
         } catch (error) {
             handleServiceError(error, res, next);
         }
@@ -370,35 +403,135 @@ router.patch(
     },
 );
 
+/**
+ * @openapi
+ * /users/me/followers:
+ *   get:
+ *     summary: Get followers of the authenticated user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of followers
+ *       401:
+ *         description: Unauthorized
+ */
 router.get(
     "/me/followers",
     authMiddleware,
-    function (req: Request, res: Response, next: NextFunction) {
-        sendStub(res, "GET /users/me/followers");
+    async function (req: Request, res: Response, next: NextFunction) {
+        try {
+            const userId = req.session.user.id;
+            const followers = await usersService.getFollowers(userId);
+            res.json(followers);
+        } catch (error) {
+            handleServiceError(error, res, next);
+        }
     },
 );
 
+/**
+ * @openapi
+ * /users/me/following:
+ *   get:
+ *     summary: Get users that the authenticated user is following
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of followed users
+ *       401:
+ *         description: Unauthorized
+ */
 router.get(
     "/me/following",
     authMiddleware,
-    function (req: Request, res: Response, next: NextFunction) {
-        sendStub(res, "GET /users/me/following");
+    async function (req: Request, res: Response, next: NextFunction) {
+        try {
+            const userId = req.session.user.id;
+            const following = await usersService.getFollowing(userId);
+            res.json(following);
+        } catch (error) {
+            handleServiceError(error, res, next);
+        }
     },
 );
 
+/**
+ * @openapi
+ * /users/{userId}/follow:
+ *   post:
+ *     summary: Follow a user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       204:
+ *         description: Successfully followed
+ *       400:
+ *         description: Cannot follow yourself
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ */
 router.post(
     "/:userId/follow",
     authMiddleware,
-    function (req: Request, res: Response, next: NextFunction) {
-        sendStub(res, "POST /users/:userId/follow");
+    async function (req: Request, res: Response, next: NextFunction) {
+        try {
+            const followerId = req.session.user.id;
+            const { userId } = req.params;
+            await usersService.followUser(followerId, userId);
+            res.status(204).send();
+        } catch (error) {
+            handleServiceError(error, res, next);
+        }
     },
 );
 
+/**
+ * @openapi
+ * /users/{userId}/follow:
+ *   delete:
+ *     summary: Unfollow a user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       204:
+ *         description: Successfully unfollowed
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Not following this user
+ */
 router.delete(
     "/:userId/follow",
     authMiddleware,
-    function (req: Request, res: Response, next: NextFunction) {
-        sendStub(res, "DELETE /users/:userId/follow");
+    async function (req: Request, res: Response, next: NextFunction) {
+        try {
+            const followerId = req.session.user.id;
+            const { userId } = req.params;
+            await usersService.unfollowUser(followerId, userId);
+            res.status(204).send();
+        } catch (error) {
+            handleServiceError(error, res, next);
+        }
     },
 );
 

@@ -401,6 +401,65 @@ router.get(
 
 /**
  * @openapi
+ * /recipes/me:
+ *   get:
+ *     tags:
+ *       - Recipes
+ *     summary: Get current user's recipes (alias for /own)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of user's recipes
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+    "/me",
+    authMiddleware,
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const userId = req.session.user.id;
+            const recipes = await recipeService.getOwnRecipes(userId);
+            res.json(recipes);
+        } catch (e) {
+            handleServiceError(e, res, next);
+        }
+    },
+);
+
+/**
+ * @openapi
+ * /recipes/user/{userId}:
+ *   get:
+ *     tags:
+ *       - Recipes
+ *     summary: Get recipes by a specific user
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of user's recipes
+ */
+router.get(
+    "/user/:userId",
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { userId } = req.params;
+            const recipes = await recipeService.getOwnRecipes(userId);
+            res.json(recipes);
+        } catch (e) {
+            handleServiceError(e, res, next);
+        }
+    },
+);
+
+/**
+ * @openapi
  * /recipes:
  *   get:
  *     summary: Get all recipes with filtering and pagination

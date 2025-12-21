@@ -189,6 +189,66 @@ export class UsersService {
         }
     }
 
+    async getFollowers(userId: string): Promise<UserDto[]> {
+        const user = await User.findByPk(userId, {
+            include: [
+                {
+                    association: User.associations.followers,
+                    attributes: [...publicUserAttributes],
+                },
+            ],
+        });
+
+        if (!user) {
+            throw new ServiceError("User not found", 404, "USER_NOT_FOUND");
+        }
+
+        return (user.followers ?? []).map((follower) => this.toUserDto(follower));
+    }
+
+    async getFollowing(userId: string): Promise<UserDto[]> {
+        const user = await User.findByPk(userId, {
+            include: [
+                {
+                    association: User.associations.following,
+                    attributes: [...publicUserAttributes],
+                },
+            ],
+        });
+
+        if (!user) {
+            throw new ServiceError("User not found", 404, "USER_NOT_FOUND");
+        }
+
+        return (user.following ?? []).map((followed) => this.toUserDto(followed));
+    }
+
+    async followUser(followerId: string, targetUserId: string): Promise<void> {
+        if (followerId === targetUserId) {
+            throw new ServiceError("Cannot follow yourself", 400, "CANNOT_FOLLOW_SELF");
+        }
+
+        const targetUser = await User.findByPk(targetUserId);
+        if (!targetUser) {
+            throw new ServiceError("User not found", 404, "USER_NOT_FOUND");
+        }
+
+        await UserFollower.findOrCreate({
+            where: { id: targetUserId, followerId },
+            defaults: { id: targetUserId, followerId },
+        });
+    }
+
+    async unfollowUser(followerId: string, targetUserId: string): Promise<void> {
+        const deleted = await UserFollower.destroy({
+            where: { id: targetUserId, followerId },
+        });
+
+        if (deleted === 0) {
+            throw new ServiceError("Not following this user", 404, "NOT_FOLLOWING");
+        }
+    }
+
     private toUserDto(user: User): UserDto {
         return user.get({ plain: true }) as UserDto;
     }
