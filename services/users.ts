@@ -18,6 +18,16 @@ export type UserDto = UserBasicDto & {
     followingsAmount: number;
 };
 
+export interface RecipePreview {
+    id: string;
+    thumb: string | null;
+    name: string;
+}
+
+export type UserWithRecipesDto = UserDto & {
+    recipes: RecipePreview[];
+};
+
 export type CurrentUserDto = Pick<
     InferAttributes<User>,
     "id" | "name" | "email" | "avatar"
@@ -223,7 +233,7 @@ export class UsersService {
         }
     }
 
-    async getFollowers(userId: string): Promise<UserBasicDto[]> {
+    async getFollowers(userId: string): Promise<UserWithRecipesDto[]> {
         const user = await User.findByPk(userId, {
             include: [
                 {
@@ -237,10 +247,34 @@ export class UsersService {
             throw new ServiceError("User not found", 404, "USER_NOT_FOUND");
         }
 
-        return (user.followers ?? []).map((follower) => this.toUserBasicDto(follower));
+        const followers = user.followers ?? [];
+
+        return Promise.all(
+            followers.map(async (follower) => {
+                const [recipesCount, followersCount, followingCount, recipes] = await Promise.all([
+                    Recipe.count({ where: { ownerId: follower.id } }),
+                    UserFollower.count({ where: { id: follower.id } }),
+                    UserFollower.count({ where: { followerId: follower.id } }),
+                    Recipe.findAll({
+                        where: { ownerId: follower.id },
+                        attributes: ["id", "img", "name"],
+                        order: [["createdAt", "DESC"]],
+                        limit: 4,
+                    }),
+                ]);
+
+                return {
+                    ...this.toUserBasicDto(follower),
+                    recipesAmount: recipesCount,
+                    followersAmount: followersCount,
+                    followingsAmount: followingCount,
+                    recipes: recipes.map((r) => ({ id: r.id, thumb: r.img, name: r.name })),
+                };
+            })
+        );
     }
 
-    async getFollowing(userId: string): Promise<UserBasicDto[]> {
+    async getFollowing(userId: string): Promise<UserWithRecipesDto[]> {
         const user = await User.findByPk(userId, {
             include: [
                 {
@@ -254,7 +288,31 @@ export class UsersService {
             throw new ServiceError("User not found", 404, "USER_NOT_FOUND");
         }
 
-        return (user.following ?? []).map((followed) => this.toUserBasicDto(followed));
+        const following = user.following ?? [];
+
+        return Promise.all(
+            following.map(async (followed) => {
+                const [recipesCount, followersCount, followingCount, recipes] = await Promise.all([
+                    Recipe.count({ where: { ownerId: followed.id } }),
+                    UserFollower.count({ where: { id: followed.id } }),
+                    UserFollower.count({ where: { followerId: followed.id } }),
+                    Recipe.findAll({
+                        where: { ownerId: followed.id },
+                        attributes: ["id", "img", "name"],
+                        order: [["createdAt", "DESC"]],
+                        limit: 4,
+                    }),
+                ]);
+
+                return {
+                    ...this.toUserBasicDto(followed),
+                    recipesAmount: recipesCount,
+                    followersAmount: followersCount,
+                    followingsAmount: followingCount,
+                    recipes: recipes.map((r) => ({ id: r.id, thumb: r.img, name: r.name })),
+                };
+            })
+        );
     }
 
     async followUser(followerId: string, targetUserId: string): Promise<void> {
