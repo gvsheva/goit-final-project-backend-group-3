@@ -115,6 +115,62 @@ router.get(
 
 /**
  * @openapi
+ * /users/me/followers:
+ *   get:
+ *     summary: Get followers of the authenticated user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of followers
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+    "/me/followers",
+    authMiddleware,
+    async function (req: Request, res: Response, next: NextFunction) {
+        try {
+            const userId = req.session.user.id;
+            const followers = await usersService.getFollowers(userId);
+            res.json(followers);
+        } catch (error) {
+            handleServiceError(error, res, next);
+        }
+    },
+);
+
+/**
+ * @openapi
+ * /users/me/following:
+ *   get:
+ *     summary: Get users that the authenticated user is following
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of followed users
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+    "/me/following",
+    authMiddleware,
+    async function (req: Request, res: Response, next: NextFunction) {
+        try {
+            const userId = req.session.user.id;
+            const following = await usersService.getFollowing(userId);
+            res.json(following);
+        } catch (error) {
+            handleServiceError(error, res, next);
+        }
+    },
+);
+
+/**
+ * @openapi
  * /users/{userId}/followers:
  *   get:
  *     summary: Get followers of a specific user
@@ -397,62 +453,6 @@ router.patch(
             const userId = req.session!.user!.id;
             const result = await usersService.updateAvatar(userId, req.file.path);
             res.json(result);
-        } catch (error) {
-            handleServiceError(error, res, next);
-        }
-    },
-);
-
-/**
- * @openapi
- * /users/me/followers:
- *   get:
- *     summary: Get followers of the authenticated user
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: List of followers
- *       401:
- *         description: Unauthorized
- */
-router.get(
-    "/me/followers",
-    authMiddleware,
-    async function (req: Request, res: Response, next: NextFunction) {
-        try {
-            const userId = req.session.user.id;
-            const followers = await usersService.getFollowers(userId);
-            res.json(followers);
-        } catch (error) {
-            handleServiceError(error, res, next);
-        }
-    },
-);
-
-/**
- * @openapi
- * /users/me/following:
- *   get:
- *     summary: Get users that the authenticated user is following
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: List of followed users
- *       401:
- *         description: Unauthorized
- */
-router.get(
-    "/me/following",
-    authMiddleware,
-    async function (req: Request, res: Response, next: NextFunction) {
-        try {
-            const userId = req.session.user.id;
-            const following = await usersService.getFollowing(userId);
-            res.json(following);
         } catch (error) {
             handleServiceError(error, res, next);
         }
