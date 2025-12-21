@@ -7,10 +7,16 @@ import { FavoriteRecipe } from "../models/favoriteRecipe.ts";
 import { AVATAR_DIRECTORY } from "../config/directories.ts";
 import { ServiceError } from "./errors.ts";
 
-export type UserDto = Pick<
+export type UserBasicDto = Pick<
     InferAttributes<User>,
     "id" | "name" | "email" | "avatar" | "createdAt" | "updatedAt"
 >;
+
+export type UserDto = UserBasicDto & {
+    recipesAmount: number;
+    followersAmount: number;
+    followingsAmount: number;
+};
 
 export type CurrentUserDto = Pick<
     InferAttributes<User>,
@@ -50,7 +56,24 @@ export class UsersService {
             order: [["createdAt", "DESC"], ["id", "ASC"]],
         });
 
-        return users.map((user) => this.toUserDto(user));
+        const userDtos = await Promise.all(
+            users.map(async (user) => {
+                const [recipesCount, followersCount, followingCount] = await Promise.all([
+                    Recipe.count({ where: { ownerId: user.id } }),
+                    UserFollower.count({ where: { id: user.id } }),
+                    UserFollower.count({ where: { followerId: user.id } }),
+                ]);
+
+                return {
+                    ...this.toUserBasicDto(user),
+                    recipesAmount: recipesCount,
+                    followersAmount: followersCount,
+                    followingsAmount: followingCount,
+                };
+            })
+        );
+
+        return userDtos;
     }
 
     async getUser(userId: string): Promise<UserDto | null> {
@@ -60,7 +83,18 @@ export class UsersService {
 
         if (!user) return null;
 
-        return this.toUserDto(user);
+        const [recipesCount, followersCount, followingCount] = await Promise.all([
+            Recipe.count({ where: { ownerId: userId } }),
+            UserFollower.count({ where: { id: userId } }),
+            UserFollower.count({ where: { followerId: userId } }),
+        ]);
+
+        return {
+            ...this.toUserBasicDto(user),
+            recipesAmount: recipesCount,
+            followersAmount: followersCount,
+            followingsAmount: followingCount,
+        };
     }
 
     async getCurrentUser(userId: string): Promise<CurrentUserDto> {
@@ -189,7 +223,7 @@ export class UsersService {
         }
     }
 
-    async getFollowers(userId: string): Promise<UserDto[]> {
+    async getFollowers(userId: string): Promise<UserBasicDto[]> {
         const user = await User.findByPk(userId, {
             include: [
                 {
@@ -203,10 +237,10 @@ export class UsersService {
             throw new ServiceError("User not found", 404, "USER_NOT_FOUND");
         }
 
-        return (user.followers ?? []).map((follower) => this.toUserDto(follower));
+        return (user.followers ?? []).map((follower) => this.toUserBasicDto(follower));
     }
 
-    async getFollowing(userId: string): Promise<UserDto[]> {
+    async getFollowing(userId: string): Promise<UserBasicDto[]> {
         const user = await User.findByPk(userId, {
             include: [
                 {
@@ -220,7 +254,7 @@ export class UsersService {
             throw new ServiceError("User not found", 404, "USER_NOT_FOUND");
         }
 
-        return (user.following ?? []).map((followed) => this.toUserDto(followed));
+        return (user.following ?? []).map((followed) => this.toUserBasicDto(followed));
     }
 
     async followUser(followerId: string, targetUserId: string): Promise<void> {
@@ -249,8 +283,8 @@ export class UsersService {
         }
     }
 
-    private toUserDto(user: User): UserDto {
-        return user.get({ plain: true }) as UserDto;
+    private toUserBasicDto(user: User): UserBasicDto {
+        return user.get({ plain: true }) as UserBasicDto;
     }
 
     private toSessionDto(session: Session): SessionDto {
