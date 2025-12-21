@@ -166,13 +166,13 @@ export class RecipeService {
             { model: User, as: "owner", attributes: ["id", "name", "avatar"] },
         ];
 
-        // ingredient filter
+        // ingredient filter (ingredientName param actually contains ingredient ID for backward compatibility)
         if (ingredientName) {
             includeOptions.push({
                 model: Ingredient,
                 as: "ingredients",
                 attributes: ["id", "name", "img"],
-                where: { name: ingredientName },
+                where: { id: ingredientName },
                 through: { attributes: ["measure"] },
             });
         } else {
