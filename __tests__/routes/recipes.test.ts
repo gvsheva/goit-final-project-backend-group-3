@@ -214,6 +214,18 @@ jest.unstable_mockModule("fs/promises", () => ({
     unlink: jest.fn(() => Promise.resolve()),
 }));
 
+jest.unstable_mockModule("../../middlewares/upload.ts", () => ({
+    uploadSingleImage: (req: any, _res: any, next: any) => {
+        req.file = { path: "/tmp/test-image.jpg" };
+        next();
+    },
+    uploadMultipleImages: (req: any, _res: any, next: any) => {
+        req.files = [{ path: "/tmp/test-image.jpg" }];
+        next();
+    },
+    default: {},
+}));
+
 describe("Recipes Routes", () => {
     let app: Express;
 
@@ -306,6 +318,7 @@ describe("Recipes Routes", () => {
                     time: 30,
                     categoryId: "cat-1234567890123456",
                     areaId: "area-123456789012345",
+                    img: "https://example.com/test-image.jpg",
                 });
 
             expect(response.status).toBe(201);

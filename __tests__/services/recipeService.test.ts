@@ -71,6 +71,7 @@ const mockAreaModel = {
 
 const mockIngredientModel = {
     findOne: jest.fn(),
+    findByPk: jest.fn(),
     create: jest.fn(),
 };
 
@@ -146,8 +147,8 @@ describe("RecipeService", () => {
                 time: 30,
                 categoryId: "cat-1234567890123456",
                 areaId: "area-123456789012345",
-                ingredients: [],
-                img: null,
+                ingredientIds: [],
+                img: "https://example.com/test-image.jpg",
             });
 
             expect(result).toBeDefined();
@@ -167,8 +168,8 @@ describe("RecipeService", () => {
                     time: 30,
                     categoryId: "cat-1234567890123456",
                     areaId: "area-123456789012345",
-                    ingredients: [],
-                    img: null,
+                    ingredientIds: [],
+                    img: "https://example.com/test-image.jpg",
                 })
             ).rejects.toThrow("Recipe name is required");
         });
@@ -185,15 +186,15 @@ describe("RecipeService", () => {
                     time: 0,
                     categoryId: "cat-1234567890123456",
                     areaId: "area-123456789012345",
-                    ingredients: [],
-                    img: null,
+                    ingredientIds: [],
+                    img: "https://example.com/test-image.jpg",
                 })
             ).rejects.toThrow("Time must be a positive number");
         });
 
         it("should throw error if too many ingredients", async () => {
             const service = new RecipeService();
-            const ingredients = Array(51).fill("ingredient");
+            const ingredientIds = Array(51).fill("ing-123456789012345");
 
             await expect(
                 service.createRecipe({
@@ -204,8 +205,8 @@ describe("RecipeService", () => {
                     time: 30,
                     categoryId: "cat-1234567890123456",
                     areaId: "area-123456789012345",
-                    ingredients,
-                    img: null,
+                    ingredientIds,
+                    img: "https://example.com/test-image.jpg",
                 })
             ).rejects.toThrow("Maximum 50 ingredients allowed");
         });
@@ -224,8 +225,8 @@ describe("RecipeService", () => {
                     time: 30,
                     categoryId: "invalid-category",
                     areaId: "area-123456789012345",
-                    ingredients: [],
-                    img: null,
+                    ingredientIds: [],
+                    img: "https://example.com/test-image.jpg",
                 })
             ).rejects.toThrow("Invalid categoryId");
         });
@@ -245,19 +246,18 @@ describe("RecipeService", () => {
                     time: 30,
                     categoryId: "cat-1234567890123456",
                     areaId: "invalid-area",
-                    ingredients: [],
-                    img: null,
+                    ingredientIds: [],
+                    img: "https://example.com/test-image.jpg",
                 })
             ).rejects.toThrow("Invalid areaId");
         });
 
-        it("should create ingredients if they don't exist", async () => {
+        it("should link existing ingredients by ID", async () => {
             mockCategoryModel.findByPk.mockResolvedValue(mockCategory);
             mockAreaModel.findByPk.mockResolvedValue(mockArea);
             mockRecipeModel.create.mockResolvedValue({ ...mockRecipe, id: "test-nanoid-12345678" });
             mockRecipeModel.findByPk.mockResolvedValue(mockRecipe);
-            mockIngredientModel.findOne.mockResolvedValue(null);
-            mockIngredientModel.create.mockResolvedValue(mockIngredient);
+            mockIngredientModel.findByPk.mockResolvedValue(mockIngredient);
             mockRecipeIngredientModel.create.mockResolvedValue({});
 
             const service = new RecipeService();
@@ -269,11 +269,11 @@ describe("RecipeService", () => {
                 time: 30,
                 categoryId: "cat-1234567890123456",
                 areaId: "area-123456789012345",
-                ingredients: ["New Ingredient"],
-                img: null,
+                ingredientIds: ["ing-1234567890123456"],
+                img: "https://example.com/test-image.jpg",
             });
 
-            expect(mockIngredientModel.create).toHaveBeenCalled();
+            expect(mockIngredientModel.findByPk).toHaveBeenCalledWith("ing-1234567890123456");
             expect(mockRecipeIngredientModel.create).toHaveBeenCalled();
         });
     });
